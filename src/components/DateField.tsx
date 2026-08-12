@@ -23,10 +23,13 @@ interface DateFieldProps {
 
 export function DateField({ label, value, onChange, required }: DateFieldProps) {
   const [mode, setMode] = useState<DateCalendarMode>('greg')
+  const [todayFlash, setTodayFlash] = useState(false)
   const defaults = currentHebrewParts()
   const [hYear, setHYear] = useState(defaults.year)
   const [hMonth, setHMonth] = useState(defaults.month)
   const [hDay, setHDay] = useState(defaults.day)
+  const today = todayISO()
+  const isToday = value === today
 
   useEffect(() => {
     if (!value) return
@@ -50,10 +53,85 @@ export function DateField({ label, value, onChange, required }: DateFieldProps) 
   const maxDay = getDaysInHebrewMonth(hMonth, hYear)
   const dayOptions = Array.from({ length: maxDay }, (_, i) => i + 1)
 
+  useEffect(() => {
+    if (!todayFlash) return
+    const id = window.setTimeout(() => setTodayFlash(false), 700)
+    return () => window.clearTimeout(id)
+  }, [todayFlash])
+
+  function setToday() {
+    onChange(today)
+    setTodayFlash(false)
+    window.requestAnimationFrame(() => setTodayFlash(true))
+  }
+
   return (
     <div className="field date-field">
-      <div className="date-field-header">
-        <label>{label}</label>
+      <label>{label}</label>
+      <div className="date-field-row">
+        {mode === 'greg' ? (
+          <input
+            className="date-greg-input"
+            type="date"
+            required={required}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        ) : (
+          <div className="hebrew-date-row">
+            <select
+              aria-label="יום"
+              required={required}
+              value={value ? hDay : ''}
+              onChange={(e) => {
+                const day = Number(e.target.value)
+                if (!day) return
+                updateHebrew(hYear, hMonth, day)
+              }}
+            >
+              {!value && <option value="">יום</option>}
+              {dayOptions.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="חודש"
+              required={required}
+              value={value ? hMonth : ''}
+              onChange={(e) => {
+                const month = Number(e.target.value)
+                if (!month) return
+                updateHebrew(hYear, month, hDay || 1)
+              }}
+            >
+              {!value && <option value="">חודש</option>}
+              {monthOptions.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="שנה"
+              required={required}
+              value={value ? hYear : ''}
+              onChange={(e) => {
+                const year = Number(e.target.value)
+                if (!year) return
+                updateHebrew(year, hMonth || 1, hDay || 1)
+              }}
+            >
+              {!value && <option value="">שנה</option>}
+              {yearOptions.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="date-field-tools">
           <div className="date-mode-toggle" role="group" aria-label="סוג לוח שנה">
             <button
@@ -75,77 +153,14 @@ export function DateField({ label, value, onChange, required }: DateFieldProps) 
           </div>
           <button
             type="button"
-            className="date-today-btn"
-            onClick={() => onChange(todayISO())}
+            className={`date-today-btn${isToday ? ' is-active' : ''}${todayFlash ? ' is-flash' : ''}`}
+            onClick={setToday}
+            aria-pressed={isToday}
           >
             היום
           </button>
         </div>
       </div>
-
-      {mode === 'greg' ? (
-        <input
-          className="date-greg-input"
-          type="date"
-          required={required}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      ) : (
-        <div className="hebrew-date-row">
-          <select
-            aria-label="יום"
-            required={required}
-            value={value ? hDay : ''}
-            onChange={(e) => {
-              const day = Number(e.target.value)
-              if (!day) return
-              updateHebrew(hYear, hMonth, day)
-            }}
-          >
-            {!value && <option value="">יום</option>}
-            {dayOptions.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="חודש"
-            required={required}
-            value={value ? hMonth : ''}
-            onChange={(e) => {
-              const month = Number(e.target.value)
-              if (!month) return
-              updateHebrew(hYear, month, hDay || 1)
-            }}
-          >
-            {!value && <option value="">חודש</option>}
-            {monthOptions.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="שנה"
-            required={required}
-            value={value ? hYear : ''}
-            onChange={(e) => {
-              const year = Number(e.target.value)
-              if (!year) return
-              updateHebrew(year, hMonth || 1, hDay || 1)
-            }}
-          >
-            {!value && <option value="">שנה</option>}
-            {yearOptions.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
 
       <div className="date-field-hint">
         <Icon icon={Calendar} size={ICON_SIZE_SM} />

@@ -136,7 +136,7 @@ export function Dashboard() {
       })
       .filter(Boolean) ?? []
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayISO()
   const weekEnd = new Date()
   weekEnd.setDate(weekEnd.getDate() + 7)
   const weekISO = weekEnd.toISOString().slice(0, 10)

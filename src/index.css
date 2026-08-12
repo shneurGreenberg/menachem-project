@@ -432,12 +432,11 @@ p {
   border: 0;
 }
 
-.date-field-header {
+.date-field-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
   flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .date-field-tools {
@@ -480,17 +479,32 @@ p {
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.date-today-btn.is-active {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
+.date-today-btn.is-flash {
+  background: var(--shlichut);
+  color: #fff;
+  border-color: var(--shlichut);
 }
 
 .date-greg-input {
   direction: ltr;
-  max-width: 220px;
+  width: 11.5rem;
+  max-width: 100%;
 }
 
 .hebrew-date-row {
   display: grid;
   grid-template-columns: minmax(72px, 0.8fr) minmax(110px, 1.4fr) minmax(88px, 1fr);
   gap: 0.4rem;
+  flex: 1 1 240px;
   max-width: 420px;
 }
 
