@@ -61,19 +61,19 @@ interface MapPickerProps {
 
 function AutoFitMarkers({ markers }: { markers: MapPickerProps['markers'] }) {
   const map = useMap()
+  const fitKey = (markers ?? []).map((m) => `${m.id}:${m.lat}:${m.lng}`).join('|')
 
   useEffect(() => {
     if (!markers?.length) return
     const latLngs = markers.map((m) => [m.lat, m.lng] as [number, number])
     const bounds = L.latLngBounds(latLngs)
 
-    // For a single marker, just keep a reasonable zoom.
     if (markers.length === 1) {
       map.setView(latLngs[0], 15)
     } else {
       map.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 })
     }
-  }, [map, markers])
+  }, [map, fitKey, markers])
 
   return null
 }

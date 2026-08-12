@@ -14,13 +14,23 @@ import { PriorityBadge, StatusBadge } from '../components/Badges'
 import { Icon, ICON_SIZE_LG, ICON_SIZE_SM } from '../components/icons'
 import { db, getSetting } from '../db'
 import {
+  addDaysLocal,
   daysUntil,
   formatDate,
-  nowISO,
+  isOverdue,
+  monthStartISO,
   nextAnniversary,
+  nextMonthStartISO,
+  nowISO,
   todayISO,
-  priorityWeight,
 } from '../utils/dates'
+import {
+  completeReminder,
+  reminderModuleLabel,
+  reminderModulePath,
+  reopenReminder,
+  sortOpenItems,
+} from '../utils/reminders'
 
 export function Dashboard() {
   const [leadDays, setLeadDays] = useState(45)
@@ -49,27 +59,11 @@ export function Dashboard() {
   )
   const plans = useLiveQuery(() => db.plans.toArray(), [])
   const summaries = useLiveQuery(() => db.planSummaries.toArray(), [])
-  const activityTypes = useLiveQuery(() => db.activityTypes.toArray(), [])
   const contacts = useLiveQuery(() => db.contacts.count(), [])
   const students = useLiveQuery(() => db.students.count(), [])
 
-  const openReminders = [...(reminders ?? [])].sort((a, b) => {
-    const pw = priorityWeight(a.priority) - priorityWeight(b.priority)
-    if (pw !== 0) return pw
-    const ad = a.dueDate ?? '9999'
-    const bd = b.dueDate ?? '9999'
-    const dateCmp = ad.localeCompare(bd)
-    if (dateCmp !== 0) return dateCmp
-    return (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
-  })
-
-  const openHome = [...(homeTasks ?? [])].sort((a, b) => {
-    const pw = priorityWeight(a.priority) - priorityWeight(b.priority)
-    if (pw !== 0) return pw
-    const dateCmp = (a.dueDate ?? '9999').localeCompare(b.dueDate ?? '9999')
-    if (dateCmp !== 0) return dateCmp
-    return (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
-  })
+  const openReminders = sortOpenItems(reminders ?? [])
+  const openHome = sortOpenItems(homeTasks ?? [])
 
   const recentDoneReminders = [...(doneReminders ?? [])]
     .sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))
@@ -79,39 +73,12 @@ export function Dashboard() {
     .sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))
     .slice(0, 6)
 
-  async function completeReminder(id: number) {
-    const rem = await db.reminders.get(id)
-    if (!rem || rem.status === 'done') return
-    const completedAt = nowISO()
-    await db.reminders.update(id, { status: 'done', completedAt })
-
-    if (rem.contactId) {
-      await db.contactActivityLogs.add({
-        contactId: rem.contactId,
-        kind: 'reminder',
-        title: `תזכורת בוצעה: ${rem.title}`,
-        details: rem.description,
-        date: todayISO(),
-        createdAt: completedAt,
-      })
-
-      const defaultType = activityTypes?.[0]
-      if (defaultType?.id != null) {
-        await db.activities.add({
-          contactId: rem.contactId,
-          activityTypeId: defaultType.id,
-          date: todayISO(),
-          notes:
-            rem.title + (rem.description ? ` — ${rem.description}` : ''),
-          reminderId: id,
-          createdAt: completedAt,
-        })
-      }
-    }
+  async function markReminderDone(id: number) {
+    await completeReminder(id)
   }
 
-  async function reopenReminder(id: number) {
-    await db.reminders.update(id, { status: 'open', completedAt: undefined })
+  async function reopenRem(id: number) {
+    await reopenReminder(id)
   }
 
   async function completeHomeTask(id: number) {
@@ -137,32 +104,25 @@ export function Dashboard() {
       .filter(Boolean) ?? []
 
   const today = todayISO()
-  const weekEnd = new Date()
-  weekEnd.setDate(weekEnd.getDate() + 7)
-  const weekISO = weekEnd.toISOString().slice(0, 10)
-
-  const monthStart = new Date()
-  monthStart.setDate(1)
-  const monthStartISO = monthStart.toISOString().slice(0, 10)
-  const nextMonth = new Date(monthStart)
-  nextMonth.setMonth(nextMonth.getMonth() + 1)
-  const nextMonthISO = nextMonth.toISOString().slice(0, 10)
+  const weekISO = addDaysLocal(today, 7)
+  const monthStart = monthStartISO()
+  const nextMonthISO = nextMonthStartISO()
 
   const dueToday =
     openReminders.filter((r) => r.dueDate === today).length +
     openHome.filter((t) => t.dueDate === today).length
   const dueWeek =
-    openReminders.filter((r) => r.dueDate && r.dueDate <= weekISO).length +
-    openHome.filter((t) => t.dueDate && t.dueDate <= weekISO).length
+    openReminders.filter((r) => r.dueDate && r.dueDate >= today && r.dueDate <= weekISO).length +
+    openHome.filter((t) => t.dueDate && t.dueDate >= today && t.dueDate <= weekISO).length
 
   const dueMonth =
     openReminders.filter(
       (r) =>
-        r.dueDate && r.dueDate >= monthStartISO && r.dueDate < nextMonthISO,
+        r.dueDate && r.dueDate >= monthStart && r.dueDate < nextMonthISO,
     ).length +
     openHome.filter(
       (t) =>
-        t.dueDate && t.dueDate >= monthStartISO && t.dueDate < nextMonthISO,
+        t.dueDate && t.dueDate >= monthStart && t.dueDate < nextMonthISO,
     ).length
 
   return (
@@ -204,16 +164,16 @@ export function Dashboard() {
         ) : (
           <div className="list">
             {openReminders.map((r) => (
-              <div key={`r-${r.id}`} className="list-item">
+              <div
+                key={`r-${r.id}`}
+                className={`list-item${isOverdue(r.dueDate) ? ' is-overdue' : ''}`}
+              >
                 <div className="stack-sm">
                   <strong>{r.title}</strong>
                   <div className="meta">
-                    {r.module === 'shlichut'
-                      ? 'שליחות'
-                      : r.module === 'chinuch'
-                        ? 'חינוך'
-                        : 'בית'}
+                    {reminderModuleLabel(r.module)}
                     {r.dueDate ? ` · ${formatDate(r.dueDate)}` : ''}
+                    {isOverdue(r.dueDate) ? ' · באיחור' : ''}
                   </div>
                 </div>
                 <div className="actions">
@@ -222,7 +182,7 @@ export function Dashboard() {
                   <button
                     type="button"
                     className="btn small shlichut"
-                    onClick={() => r.id != null && completeReminder(r.id)}
+                    onClick={() => r.id != null && markReminderDone(r.id)}
                     aria-label={`סמן תזכורת "${r.title}" כבוצעה`}
                   >
                     <Icon icon={Check} size={ICON_SIZE_SM} />
@@ -230,13 +190,7 @@ export function Dashboard() {
                   </button>
                   <Link
                     className="btn small secondary"
-                    to={
-                      r.module === 'shlichut'
-                        ? '/shlichut/reminders'
-                        : r.module === 'chinuch'
-                          ? '/chinuch'
-                          : '/bayit/tasks'
-                    }
+                    to={reminderModulePath(r.module)}
                   >
                     <Icon icon={ExternalLink} size={ICON_SIZE_SM} />
                     פתיחה
@@ -245,12 +199,16 @@ export function Dashboard() {
               </div>
             ))}
             {openHome.map((t) => (
-              <div key={`h-${t.id}`} className="list-item">
+              <div
+                key={`h-${t.id}`}
+                className={`list-item${isOverdue(t.dueDate) ? ' is-overdue' : ''}`}
+              >
                 <div className="stack-sm">
                   <strong>{t.title}</strong>
                   <div className="meta">
                     בית
                     {t.dueDate ? ` · ${formatDate(t.dueDate)}` : ''}
+                    {isOverdue(t.dueDate) ? ' · באיחור' : ''}
                   </div>
                 </div>
                 <div className="actions">
@@ -293,7 +251,7 @@ export function Dashboard() {
                   <button
                     type="button"
                     className="btn small secondary"
-                    onClick={() => r.id != null && reopenReminder(r.id)}
+                    onClick={() => r.id != null && reopenRem(r.id)}
                     aria-label={`פתח מחדש תזכורת "${r.title}"`}
                   >
                     <Icon icon={RotateCcw} size={ICON_SIZE_SM} />
@@ -301,7 +259,7 @@ export function Dashboard() {
                   </button>
                   <Link
                     className="btn small ghost"
-                    to={r.module === 'shlichut' ? '/shlichut/reminders' : '/bayit/tasks'}
+                    to={reminderModulePath(r.module)}
                   >
                     <Icon icon={ExternalLink} size={ICON_SIZE_SM} />
                     פתיחה
@@ -366,7 +324,7 @@ export function Dashboard() {
                       <div className="meta">עדיין אין סיכום משנים קודמות.</div>
                     )}
                   </div>
-                  <Link className="btn small bayit" to={`/shlichut/plans/${plan.id}`}>
+                  <Link className="btn small shlichut" to={`/shlichut/plans/${plan.id}`}>
                     <Icon icon={Calendar} size={ICON_SIZE_SM} />
                     לתוכנית
                   </Link>

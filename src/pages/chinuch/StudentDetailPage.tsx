@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { DateField } from '../../components/DateField'
+import { PhoneLink } from '../../components/PhoneLink'
 import { SaveBar } from '../../components/SaveBar'
 import { db } from '../../db'
 import { useSaveFeedback } from '../../hooks/useSaveFeedback'
@@ -39,7 +40,7 @@ export function StudentDetailPage() {
     notes: '',
   })
   const [baseline, setBaseline] = useState('')
-  const { saving, saved, runSave } = useSaveFeedback()
+  const { saving, saved, error, runSave } = useSaveFeedback()
 
   const formSnapshot = useMemo(() => JSON.stringify(form), [form])
   const dirty = baseline !== '' && formSnapshot !== baseline
@@ -107,8 +108,16 @@ export function StudentDetailPage() {
 
   async function remove() {
     if (!confirm('למחוק תלמיד וציונים?')) return
-    await db.transaction('rw', db.students, db.grades, async () => {
+    await db.transaction('rw', db.students, db.grades, db.teachingPlans, async () => {
       await db.grades.where('studentId').equals(studentId).delete()
+      const plans = await db.teachingPlans.toArray()
+      for (const p of plans) {
+        if (p.id != null && p.studentIds.includes(studentId)) {
+          await db.teachingPlans.update(p.id, {
+            studentIds: p.studentIds.filter((id) => id !== studentId),
+          })
+        }
+      }
       await db.students.delete(studentId)
     })
     navigate('/chinuch/students')
@@ -142,9 +151,15 @@ export function StudentDetailPage() {
             <div className="field">
               <label>טלפון</label>
               <input
+                type="tel"
                 value={form.phone}
                 onChange={(e) => setForm((s) => ({ ...s, phone: e.target.value }))}
               />
+              {form.phone.trim() && (
+                <div className="meta">
+                  <PhoneLink phone={form.phone} />
+                </div>
+              )}
             </div>
             <div className="field">
               <label>הורה</label>
@@ -158,11 +173,17 @@ export function StudentDetailPage() {
             <div className="field">
               <label>טלפון הורה</label>
               <input
+                type="tel"
                 value={form.parentPhone}
                 onChange={(e) =>
                   setForm((s) => ({ ...s, parentPhone: e.target.value }))
                 }
               />
+              {form.parentPhone.trim() && (
+                <div className="meta">
+                  <PhoneLink phone={form.parentPhone} />
+                </div>
+              )}
             </div>
           </div>
           <div className="field">
@@ -192,6 +213,7 @@ export function StudentDetailPage() {
         dirty={dirty}
         saving={saving}
         saved={saved}
+        error={error}
         onSave={() => void save()}
         variant="chinuch"
         context={form.name || 'תלמיד'}

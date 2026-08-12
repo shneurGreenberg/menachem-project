@@ -1,6 +1,6 @@
 import { BUILTIN_FIREBASE_CONFIG } from './builtinConfig'
 import type { FirebaseWebConfig } from './types'
-import { FIREBASE_CONFIG_KEY, SUGGESTED_SYNC_CODE, SYNC_CODE_KEY } from './types'
+import { FIREBASE_CONFIG_KEY, SYNC_CODE_KEY } from './types'
 
 export function parseFirebaseConfig(raw: string): FirebaseWebConfig {
   const text = raw.trim()
@@ -70,12 +70,26 @@ function envFirebaseConfig(): FirebaseWebConfig | null {
   }
 }
 
+export function generateSyncCode(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(4))
+  const hex = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
+  return `MENACHEM-${hex.toUpperCase()}`
+}
+
 export function getStoredSyncCode(): string | null {
   return localStorage.getItem(SYNC_CODE_KEY)
 }
 
 export function saveSyncCode(code: string) {
   localStorage.setItem(SYNC_CODE_KEY, code.trim())
+}
+
+export function ensureSyncCode(): string {
+  const existing = getStoredSyncCode()
+  if (existing) return existing
+  const code = generateSyncCode()
+  saveSyncCode(code)
+  return code
 }
 
 export async function spaceIdFromCode(code: string): Promise<string> {
@@ -106,7 +120,7 @@ export function captureSyncFromUrl() {
     new URLSearchParams(url.hash.replace(/^#/, '')).get('cfg')
 
   if (sync) saveSyncCode(sync)
-  else if (!getStoredSyncCode()) saveSyncCode(SUGGESTED_SYNC_CODE)
+  else ensureSyncCode()
   if (cfgParam) {
     const cfg = decodeCfg(cfgParam)
     if (cfg) saveFirebaseConfig(cfg)
@@ -114,7 +128,7 @@ export function captureSyncFromUrl() {
 }
 
 export function buildPersonalSyncUrl(): string {
-  const code = getStoredSyncCode() || SUGGESTED_SYNC_CODE
+  const code = ensureSyncCode()
   const base = `${window.location.origin}${import.meta.env.BASE_URL}`
   const params = new URLSearchParams()
   params.set('sync', code)

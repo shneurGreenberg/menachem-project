@@ -7,6 +7,7 @@ interface SaveBarProps {
   dirty: boolean
   saving?: boolean
   saved?: boolean
+  error?: string
   onSave: () => void
   variant?: SaveBarVariant
   context?: string
@@ -16,15 +17,18 @@ export function SaveBar({
   dirty,
   saving = false,
   saved = false,
+  error = '',
   onSave,
   variant = 'default',
   context,
 }: SaveBarProps) {
   // Important: keep the bar visible while saving even if `dirty` becomes false
   // as part of the save callback.
-  if (!dirty && !saved && !saving) return null
+  if (!dirty && !saved && !saving && !error) return null
 
-  const msg = saving
+  const msg = error
+    ? error
+    : saving
     ? `שומר…${context ? ` · ${context}` : ''}`
     : saved
       ? `נשמר בהצלחה${context ? ` · ${context}` : ''}`
@@ -32,7 +36,7 @@ export function SaveBar({
 
   return (
     <div className="save-bar" role="status" aria-live="polite">
-      <span className={`save-bar-msg ${saved ? 'saved' : ''}`}>
+      <span className={`save-bar-msg ${saved ? 'saved' : ''} ${error ? 'error' : ''}`}>
         {msg}
       </span>
       <button

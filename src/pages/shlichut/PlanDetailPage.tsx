@@ -6,13 +6,15 @@ import {
   ShoppingCart,
   Trash2,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
+import { DateField } from '../../components/DateField'
 import { SaveBar } from '../../components/SaveBar'
 import { db } from '../../db'
 import { useSaveFeedback } from '../../hooks/useSaveFeedback'
-import { formatDate, formatMoney, nowISO, todayISO } from '../../utils/dates'
+import type { PlanStatus } from '../../types'
+import { formatMoney, nowISO, todayISO } from '../../utils/dates'
 
 export function PlanDetailPage() {
   const { id } = useParams()
@@ -45,12 +47,42 @@ export function PlanDetailPage() {
     whatDidnt: '',
     notesForNextYear: '',
   })
-  const { saving, saved, runSave } = useSaveFeedback()
+  const [planForm, setPlanForm] = useState({
+    title: '',
+    description: '',
+    targetDate: todayISO(),
+    budget: '',
+    status: 'active' as PlanStatus,
+  })
+  const [planBaseline, setPlanBaseline] = useState('')
+  const { saving, saved, error, runSave } = useSaveFeedback()
+  const {
+    saving: planSaving,
+    saved: planSaved,
+    error: planError,
+    runSave: runPlanSave,
+  } = useSaveFeedback()
 
   const summaryDirty =
     summary.whatWorked.trim() !== '' ||
     summary.whatDidnt.trim() !== '' ||
     summary.notesForNextYear.trim() !== ''
+
+  const planSnapshot = useMemo(() => JSON.stringify(planForm), [planForm])
+  const planDirty = planBaseline !== '' && planSnapshot !== planBaseline
+
+  useEffect(() => {
+    if (!plan) return
+    const initial = {
+      title: plan.title,
+      description: plan.description ?? '',
+      targetDate: plan.targetDate,
+      budget: plan.budget != null ? String(plan.budget) : '',
+      status: plan.status,
+    }
+    setPlanForm(initial)
+    setPlanBaseline(JSON.stringify(initial))
+  }, [plan])
 
   if (!Number.isFinite(planId)) {
     return <div className="empty">מזהה לא תקין</div>
@@ -104,10 +136,24 @@ export function PlanDetailPage() {
     await db.shoppingItems.update(id, { purchased: !purchased })
   }
 
+  async function savePlan() {
+    await runPlanSave(async () => {
+      await db.plans.update(planId, {
+        title: planForm.title.trim(),
+        description: planForm.description.trim() || undefined,
+        targetDate: planForm.targetDate,
+        budget: planForm.budget ? Number(planForm.budget) : undefined,
+        status: planForm.status,
+        updatedAt: nowISO(),
+      })
+      setPlanBaseline(planSnapshot)
+    })
+  }
+
   async function saveSummary(e?: React.FormEvent) {
     e?.preventDefault()
     await runSave(async () => {
-      const year = Number(plan!.targetDate.slice(0, 4))
+      const year = Number(todayISO().slice(0, 4))
       await db.planSummaries.add({
         planId,
         year,
@@ -116,7 +162,6 @@ export function PlanDetailPage() {
         notesForNextYear: summary.notesForNextYear.trim(),
         createdAt: nowISO(),
       })
-      await db.plans.update(planId, { status: 'completed', updatedAt: nowISO() })
       setSummary({ whatWorked: '', whatDidnt: '', notesForNextYear: '' })
     })
   }
@@ -153,19 +198,73 @@ export function PlanDetailPage() {
       </div>
 
       <section className="panel">
-        <h2>{plan.title}</h2>
-        <p>
-          תאריך יעד: {formatDate(plan.targetDate)}
-          {plan.budget != null ? ` · תקציב ${formatMoney(plan.budget)}` : ''}
-          {` · סטטוס: ${plan.status === 'active' ? 'פעילה' : plan.status === 'completed' ? 'הושלמה' : 'ארכיון'}`}
-        </p>
-        {plan.description && <p>{plan.description}</p>}
-        <p className="muted">
-          הוצאות משוערות מקניות: {formatMoney(shopTotal)}
-          {plan.budget != null
-            ? ` · יתרה משוערת: ${formatMoney(plan.budget - shopTotal)}`
-            : ''}
-        </p>
+        <h2>פרטי תוכנית</h2>
+        <form
+          className="form"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void savePlan()
+          }}
+        >
+          <div className="form-row">
+            <div className="field">
+              <label>כותרת</label>
+              <input
+                required
+                value={planForm.title}
+                onChange={(e) => setPlanForm((s) => ({ ...s, title: e.target.value }))}
+              />
+            </div>
+            <DateField
+              label="תאריך יעד"
+              value={planForm.targetDate}
+              onChange={(targetDate) => setPlanForm((s) => ({ ...s, targetDate }))}
+              required
+            />
+            <div className="field">
+              <label>תקציב (₪)</label>
+              <input
+                type="number"
+                min={0}
+                value={planForm.budget}
+                onChange={(e) => setPlanForm((s) => ({ ...s, budget: e.target.value }))}
+              />
+            </div>
+            <div className="field">
+              <label>סטטוס</label>
+              <select
+                value={planForm.status}
+                onChange={(e) =>
+                  setPlanForm((s) => ({ ...s, status: e.target.value as PlanStatus }))
+                }
+              >
+                <option value="active">פעילה</option>
+                <option value="completed">הושלמה</option>
+                <option value="archived">ארכיון</option>
+              </select>
+            </div>
+          </div>
+          <div className="field">
+            <label>תיאור</label>
+            <textarea
+              value={planForm.description}
+              onChange={(e) =>
+                setPlanForm((s) => ({ ...s, description: e.target.value }))
+              }
+            />
+          </div>
+          <p className={plan.budget != null && shopTotal > plan.budget ? 'over-budget' : 'muted'}>
+            הוצאות משוערות מקניות: {formatMoney(shopTotal)}
+            {plan.budget != null
+              ? ` · יתרה משוערת: ${formatMoney(plan.budget - shopTotal)}`
+              : ''}
+            {plan.budget != null && shopTotal > plan.budget ? ' · חריגה מהתקציב' : ''}
+          </p>
+          <button type="submit" className="btn shlichut">
+            <Icon icon={Save} size={ICON_SIZE_SM} />
+            שמירת תוכנית
+          </button>
+        </form>
       </section>
 
       <section className="panel">
@@ -315,9 +414,19 @@ export function PlanDetailPage() {
       </section>
 
       <SaveBar
+        dirty={planDirty}
+        saving={planSaving}
+        saved={planSaved}
+        error={planError}
+        onSave={() => void savePlan()}
+        variant="shlichut"
+        context="פרטי תוכנית"
+      />
+      <SaveBar
         dirty={summaryDirty}
         saving={saving}
         saved={saved}
+        error={error}
         onSave={() => void saveSummary()}
         variant="shlichut"
         context="סיכום אחרי האירוע"

@@ -15,10 +15,12 @@ export async function geocodeAddress(
   url.searchParams.set('format', 'json')
   url.searchParams.set('limit', '1')
   url.searchParams.set('accept-language', 'he')
+  url.searchParams.set('countrycodes', 'il')
 
   const res = await fetch(url.toString(), {
     headers: {
       Accept: 'application/json',
+      'User-Agent': 'menachem-project/1.0 (personal management app)',
     },
   })
   if (!res.ok) return null

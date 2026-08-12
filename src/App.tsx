@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { Dashboard } from './pages/Dashboard'
 import { SettingsPage } from './pages/SettingsPage'
@@ -57,9 +57,20 @@ export default function App() {
             <Route path="tasks" element={<HomeTasksPage />} />
           </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </BrowserRouter>
+  )
+}
+
+function NotFound() {
+  return (
+    <div className="empty">
+      העמוד לא נמצא.{' '}
+      <Link to="/" className="btn small secondary">
+        חזרה לדשבורד
+      </Link>
+    </div>
   )
 }

@@ -1,5 +1,6 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app'
 import {
+  deleteDoc,
   doc,
   getDoc,
   getFirestore,
@@ -8,6 +9,7 @@ import {
   setDoc,
   type Firestore,
 } from 'firebase/firestore'
+import { beginSilentWrites, db as localDb, endSilentWrites } from '../db'
 import { exportAllData, importAllData, TABLES } from '../utils/backup'
 import {
   getStoredFirebaseConfig,
@@ -17,11 +19,13 @@ import {
 import { LAST_HASH_KEY, LAST_SYNC_KEY, type SyncStatus } from './types'
 
 let app: FirebaseApp | null = null
-let db: Firestore | null = null
+let firestoreDb: Firestore | null = null
 let spaceId: string | null = null
 let unsub: (() => void) | null = null
 let applyingRemote = false
-let timer: number | null = null
+let inflight: Promise<void> | null = null
+let pendingSync = false
+let hooksAttached = false
 let listeners = new Set<(s: SyncStatus) => void>()
 let status: SyncStatus = {
   state: 'idle',
@@ -69,9 +73,9 @@ async function ensureFirebase() {
   } else {
     app = getApps()[0]!
   }
-  db = getFirestore(app)
+  firestoreDb = getFirestore(app)
   spaceId = await spaceIdFromCode(code)
-  return { db, spaceId }
+  return { db: firestoreDb, spaceId }
 }
 
 function tableRef(firestore: Firestore, id: string, table: string) {
@@ -80,6 +84,10 @@ function tableRef(firestore: Firestore, id: string, table: string) {
 
 function metaRef(firestore: Firestore, id: string) {
   return doc(firestore, 'spaces', id, 'data', 'meta')
+}
+
+function imageRef(firestore: Firestore, id: string, contactId: number) {
+  return doc(firestore, 'spaces', id, 'images', `contact-${contactId}`)
 }
 
 async function localHash(json: string) {
@@ -92,9 +100,51 @@ async function localHash(json: string) {
     .join('')
 }
 
+async function pushContactImages(
+  firestore: Firestore,
+  id: string,
+  contacts: Array<{ id?: number; imageDataUrl?: string }>,
+) {
+  for (const c of contacts) {
+    if (c.id == null) continue
+    const ref = imageRef(firestore, id, c.id)
+    if (c.imageDataUrl) {
+      await setDoc(ref, {
+        imageDataUrl: c.imageDataUrl,
+        updatedAt: new Date().toISOString(),
+      })
+    } else {
+      await deleteDoc(ref).catch(() => undefined)
+    }
+  }
+}
+
+async function pullContactImages(
+  firestore: Firestore,
+  id: string,
+  contacts: Array<Record<string, unknown> & { id?: number }>,
+) {
+  const out = []
+  for (const c of contacts) {
+    if (c.id == null) {
+      out.push(c)
+      continue
+    }
+    const snap = await getDoc(imageRef(firestore, id, c.id))
+    if (snap.exists()) {
+      const imageDataUrl = (snap.data() as { imageDataUrl?: string }).imageDataUrl
+      out.push({ ...c, imageDataUrl: imageDataUrl || c.imageDataUrl })
+    } else {
+      out.push(c)
+    }
+  }
+  return out
+}
+
 export async function pushLocalToCloud() {
+  if (applyingRemote) return
   const { db: firestore, spaceId: id } = await ensureFirebase()
-  const json = await exportAllData({ imagePolicy: 'auto', imageMaxChars: 80_000 })
+  const json = await exportAllData({ imagePolicy: 'exclude' })
   const parsed = JSON.parse(json) as { data?: Record<string, unknown[]> }
   const data = parsed.data ?? {}
   const updatedAt = new Date().toISOString()
@@ -104,6 +154,11 @@ export async function pushLocalToCloud() {
       updatedAt,
     })
   }
+  const contacts = (await localDb.contacts.toArray()) as Array<{
+    id?: number
+    imageDataUrl?: string
+  }>
+  await pushContactImages(firestore, id, contacts)
   await setDoc(metaRef(firestore, id), {
     version: 1,
     updatedAt,
@@ -128,9 +183,13 @@ export async function pullCloudToLocal() {
       data[table] = []
     }
   }
+  const contacts = (data.contacts ?? []) as Array<Record<string, unknown> & { id?: number }>
+  data.contacts = await pullContactImages(firestore, id, contacts)
+
   applyingRemote = true
+  beginSilentWrites()
   try {
-    await importAllData(JSON.stringify({ version: 1, data }))
+    await importAllData(JSON.stringify({ version: 1, data }), { merge: true })
     const hash = await localHash(JSON.stringify(data))
     localStorage.setItem(LAST_HASH_KEY, hash)
     localStorage.setItem(
@@ -138,21 +197,29 @@ export async function pullCloudToLocal() {
       String((meta.data() as { updatedAt?: string }).updatedAt ?? new Date().toISOString()),
     )
   } finally {
+    endSilentWrites()
     applyingRemote = false
   }
   return true
 }
 
-export async function syncNow() {
+async function doSync() {
+  if (applyingRemote) return
   setStatus({ state: 'syncing', message: 'מסנכרן…', lastSyncedAt: status.lastSyncedAt })
   try {
     const { db: firestore, spaceId: id } = await ensureFirebase()
     const snap = await getDoc(metaRef(firestore, id))
-    const localJson = await exportAllData({ imagePolicy: 'auto', imageMaxChars: 80_000 })
+    const localJson = await exportAllData({ imagePolicy: 'exclude' })
     const localParsed = JSON.parse(localJson) as { data?: Record<string, unknown[]> }
     const localData = localParsed.data ?? {}
     const localH = await localHash(JSON.stringify(localData))
     const lastH = localStorage.getItem(LAST_HASH_KEY)
+    const lastSync = localStorage.getItem(LAST_SYNC_KEY)
+    const remoteUpdated = snap.exists()
+      ? String((snap.data() as { updatedAt?: string }).updatedAt ?? '')
+      : ''
+    const remoteChanged = Boolean(remoteUpdated && remoteUpdated !== lastSync)
+    const localChanged = Boolean(lastH && localH !== lastH)
 
     if (!snap.exists()) {
       await pushLocalToCloud()
@@ -164,29 +231,34 @@ export async function syncNow() {
       return
     }
 
-    // New device / first connect: take cloud as source of truth.
     if (!lastH) {
       await pullCloudToLocal()
+      const after = await exportAllData({ imagePolicy: 'exclude' })
+      const afterData = (JSON.parse(after) as { data?: Record<string, unknown[]> }).data ?? {}
+      const afterH = await localHash(JSON.stringify(afterData))
+      if (afterH !== localH) {
+        await pushLocalToCloud()
+      }
       setStatus({
         state: 'ok',
-        message: 'נטען מהענן למכשיר זה',
+        message: 'סונכרן עם הענן',
         lastSyncedAt: new Date().toISOString(),
       })
       return
     }
 
-    const remoteUpdated = String((snap.data() as { updatedAt?: string }).updatedAt ?? '')
-    if (lastH === localH && remoteUpdated && remoteUpdated !== localStorage.getItem(LAST_SYNC_KEY)) {
+    if (localChanged && remoteChanged) {
       await pullCloudToLocal()
+      await pushLocalToCloud()
       setStatus({
         state: 'ok',
-        message: 'עודכן מהענן',
+        message: 'מוזג בין המכשירים',
         lastSyncedAt: new Date().toISOString(),
       })
       return
     }
 
-    if (localH !== lastH) {
+    if (localChanged) {
       await pushLocalToCloud()
       setStatus({
         state: 'ok',
@@ -196,26 +268,54 @@ export async function syncNow() {
       return
     }
 
+    if (remoteChanged) {
+      await pullCloudToLocal()
+      setStatus({
+        state: 'ok',
+        message: 'עודכן מהענן',
+        lastSyncedAt: new Date().toISOString(),
+      })
+      return
+    }
+
     setStatus({
       state: 'ok',
       message: 'מסונכרן',
-      lastSyncedAt: localStorage.getItem(LAST_SYNC_KEY) ?? new Date().toISOString(),
+      lastSyncedAt: lastSync ?? new Date().toISOString(),
     })
   } catch (err) {
     const raw = err instanceof Error ? err.message : 'שגיאה בסנכרון'
     let message = raw
     if (raw.includes('permission-denied')) {
-      message = 'Firestore Rules חוסמים כתיבה — פרסמו את הכללים החדשים בלשונית Rules'
+      message = 'אין הרשאה לענן — בדקו את כללי Firestore'
     }
     setStatus({ state: 'error', message, lastSyncedAt: status.lastSyncedAt })
     throw err
   }
 }
 
+export async function syncNow() {
+  if (applyingRemote) return
+  if (inflight) {
+    pendingSync = true
+    return inflight
+  }
+  inflight = doSync()
+    .catch(() => undefined)
+    .finally(() => {
+      inflight = null
+      if (pendingSync) {
+        pendingSync = false
+        void syncNow()
+      }
+    })
+  return inflight
+}
+
 function listenRemote() {
-  if (!db || !spaceId) return
+  if (!firestoreDb || !spaceId) return
   unsub?.()
-  unsub = onSnapshot(metaRef(db, spaceId), async (snap) => {
+  unsub = onSnapshot(metaRef(firestoreDb, spaceId), async (snap) => {
     if (applyingRemote || !snap.exists()) return
     const remoteUpdated = String((snap.data() as { updatedAt?: string }).updatedAt ?? '')
     const last = localStorage.getItem(LAST_SYNC_KEY)
@@ -237,8 +337,6 @@ function listenRemote() {
   })
 }
 
-let hooksAttached = false
-
 export async function startAutoSync() {
   const code = getStoredSyncCode()
   const config = getStoredFirebaseConfig()
@@ -255,12 +353,6 @@ export async function startAutoSync() {
     await ensureFirebase()
     await syncNow()
     listenRemote()
-    if (timer) window.clearInterval(timer)
-    timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible' && navigator.onLine) {
-        void syncNow().catch(() => undefined)
-      }
-    }, 20_000)
     if (!hooksAttached) {
       hooksAttached = true
       window.addEventListener('visibilitychange', () => {
@@ -274,18 +366,11 @@ export async function startAutoSync() {
     const raw = err instanceof Error ? err.message : String(err)
     let message = raw
     if (raw.includes('permission-denied')) {
-      message = 'Firestore Rules חוסמים כתיבה — פרסמו את הכללים החדשים בלשונית Rules'
+      message = 'אין הרשאה לענן — בדקו את כללי Firestore'
     }
     setStatus({
       state: 'error',
       message,
     })
   }
-}
-
-export function notifyLocalChange() {
-  if (applyingRemote) return
-  window.setTimeout(() => {
-    void syncNow().catch(() => undefined)
-  }, 800)
 }

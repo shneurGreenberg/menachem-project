@@ -2,9 +2,10 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { IdCard, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { FilterEmpty, listCountLabel } from '../../components/FilterEmpty'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { db } from '../../db'
-import { nowISO } from '../../utils/dates'
+import { compareHe, nowISO } from '../../utils/dates'
 
 export function StudentsPage() {
   const students = useLiveQuery(() => db.students.toArray(), [])
@@ -16,7 +17,7 @@ export function StudentsPage() {
 
   const sorted = useMemo(() => {
     const rows = [...(students ?? [])]
-    rows.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+    rows.sort((a, b) => compareHe(a.name, b.name))
     return rows
   }, [students])
 
@@ -67,6 +68,7 @@ export function StudentsPage() {
             <div className="field">
               <label>טלפון הורה</label>
               <input
+                type="tel"
                 value={parentPhone}
                 onChange={(e) => setParentPhone(e.target.value)}
               />
@@ -80,39 +82,43 @@ export function StudentsPage() {
       </section>
 
       <section className="panel">
+        <h2>רשימה ({listCountLabel(filtered.length, sorted.length)})</h2>
         <div className="actions" style={{ marginBottom: '0.75rem' }}>
-          <h2 style={{ margin: 0, flex: 1 }}>רשימה ({filtered.length})</h2>
+          <div className="field" style={{ flex: 1, minWidth: 220 }}>
+            <label className="sr-only">חיפוש</label>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="חיפוש לפי שם / הורה / טלפון"
+              aria-label="חיפוש תלמידים"
+            />
+          </div>
+          <div className="field" style={{ minWidth: 220 }}>
+            <label className="sr-only">סינון הורה</label>
+            <select
+              value={parentFilter}
+              onChange={(e) => setParentFilter(e.target.value as typeof parentFilter)}
+              aria-label="סינון לפי הורה"
+            >
+              <option value="all">הכל</option>
+              <option value="withParent">עם פרטי הורה</option>
+              <option value="noParent">ללא פרטי הורה</option>
+            </select>
+          </div>
         </div>
         {!filtered.length ? (
-          <div className="empty">אין תלמידים.</div>
+          <FilterEmpty
+            sourceCount={sorted.length}
+            filteredCount={0}
+            emptyLabel="אין תלמידים."
+            onClear={() => {
+              setSearch('')
+              setParentFilter('all')
+            }}
+          />
         ) : (
-          <>
-            <div className="actions" style={{ marginBottom: '0.75rem' }}>
-              <div className="field" style={{ flex: 1, minWidth: 220 }}>
-                <label className="sr-only">חיפוש</label>
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="חיפוש לפי שם / הורה / טלפון"
-                  aria-label="חיפוש תלמידים"
-                />
-              </div>
-              <div className="field" style={{ minWidth: 220 }}>
-                <label className="sr-only">סינון הורה</label>
-                <select
-                  value={parentFilter}
-                  onChange={(e) => setParentFilter(e.target.value as typeof parentFilter)}
-                  aria-label="סינון לפי הורה"
-                >
-                  <option value="all">הכל</option>
-                  <option value="withParent">עם פרטי הורה</option>
-                  <option value="noParent">ללא פרטי הורה</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="list">
-              {filtered.map((s) => (
+          <div className="list">
+            {filtered.map((s) => (
               <Link key={s.id} to={`/chinuch/students/${s.id}`} className="list-item">
                 <div className="stack-sm">
                   <strong>{s.name}</strong>
@@ -126,9 +132,8 @@ export function StudentsPage() {
                   כרטיס
                 </span>
               </Link>
-              ))}
-            </div>
-          </>
+            ))}
+          </div>
         )}
       </section>
     </div>

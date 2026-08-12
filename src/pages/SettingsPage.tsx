@@ -7,6 +7,12 @@ import { SyncSettings } from '../components/SyncSettings'
 import { db, getSetting, setSetting } from '../db'
 import { useSaveFeedback } from '../hooks/useSaveFeedback'
 import type { CustomFieldDef, FieldType } from '../types'
+import { parseCategories } from '../utils/dates'
+
+const HOME_INCOME = ['משכורת', 'מתנות', 'אחר']
+const HOME_EXPENSE = ['מזון', 'דיור', 'תחבורה', 'בריאות', 'חינוך', 'אחר']
+const CHABAD_INCOME = ['תרומות', 'מכירות', 'אחר']
+const CHABAD_EXPENSE = ['אירועים', 'ציוד', 'מזון', 'תחבורה', 'אחר']
 
 export function SettingsPage() {
   const fields = useLiveQuery(
@@ -17,7 +23,7 @@ export function SettingsPage() {
   const [leadDays, setLeadDays] = useState('45')
   const [savedLeadDays, setSavedLeadDays] = useState('45')
   const [msg, setMsg] = useState('')
-  const { saving, saved, runSave } = useSaveFeedback()
+  const { saving, saved, error, runSave } = useSaveFeedback()
 
   const leadDirty = leadDays !== savedLeadDays
 
@@ -75,7 +81,7 @@ export function SettingsPage() {
   }
 
   async function removeField(id?: number) {
-    if (id == null) return
+    if (id == null || !confirm('למחוק שדה מותאם?')) return
     await db.customFieldDefs.delete(id)
   }
 
@@ -87,7 +93,7 @@ export function SettingsPage() {
   }
 
   async function removeType(id?: number) {
-    if (id == null) return
+    if (id == null || !confirm('למחוק סוג פעילות?')) return
     await db.activityTypes.delete(id)
   }
 
@@ -95,7 +101,7 @@ export function SettingsPage() {
     <div>
       <div className="page-header">
         <h1>הגדרות</h1>
-        <p>סנכרון, שדות מותאמים וסוגי פעילות.</p>
+        <p>סנכרון, שדות מותאמים, קטגוריות וסוגי פעילות.</p>
       </div>
 
       {msg && (
@@ -127,6 +133,31 @@ export function SettingsPage() {
               שמירה
             </button>
           </div>
+        </section>
+
+        <section className="panel">
+          <h2>קטגוריות כספים</h2>
+          <p className="muted">מופרדות בפסיק. נשמרות מיד.</p>
+          <CategoryEditor
+            settingKey="homeIncomeCategories"
+            label="הכנסות בית"
+            fallback={HOME_INCOME}
+          />
+          <CategoryEditor
+            settingKey="homeExpenseCategories"
+            label="הוצאות בית"
+            fallback={HOME_EXPENSE}
+          />
+          <CategoryEditor
+            settingKey="chabadIncomeCategories"
+            label="הכנסות חב״ד"
+            fallback={CHABAD_INCOME}
+          />
+          <CategoryEditor
+            settingKey="chabadExpenseCategories"
+            label="הוצאות חב״ד"
+            fallback={CHABAD_EXPENSE}
+          />
         </section>
 
         <section className="panel">
@@ -254,9 +285,54 @@ export function SettingsPage() {
         dirty={leadDirty}
         saving={saving}
         saved={saved}
+        error={error}
         onSave={() => void saveLead()}
         context="הגדרות"
       />
+    </div>
+  )
+}
+
+function CategoryEditor({
+  settingKey,
+  label,
+  fallback,
+}: {
+  settingKey: string
+  label: string
+  fallback: string[]
+}) {
+  const [text, setText] = useState('')
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    void getSetting(settingKey).then((v) => {
+      setText(parseCategories(v, fallback).join(', '))
+    })
+  }, [settingKey, fallback])
+
+  async function save() {
+    const cats = text
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    await setSetting(settingKey, JSON.stringify(cats.length ? cats : fallback))
+    setSaved(true)
+    window.setTimeout(() => setSaved(false), 1500)
+  }
+
+  return (
+    <div className="field" style={{ marginBottom: '0.75rem' }}>
+      <label>{label}</label>
+      <div className="actions">
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={() => void save()}
+          style={{ flex: 1 }}
+        />
+        {saved && <span className="meta">נשמר</span>}
+      </div>
     </div>
   )
 }

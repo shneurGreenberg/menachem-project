@@ -4,10 +4,12 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { DateField } from '../../components/DateField'
+import { FilterEmpty, listCountLabel } from '../../components/FilterEmpty'
 import { PriorityBadge, StatusBadge } from '../../components/Badges'
 import { db } from '../../db'
 import type { Priority } from '../../types'
-import { formatDate, nowISO, todayISO } from '../../utils/dates'
+import { formatDate, isOverdue, nowISO } from '../../utils/dates'
+import { completeReminder, reopenReminder, sortOpenItems } from '../../utils/reminders'
 
 export function RemindersPage() {
   const reminders = useLiveQuery(
@@ -15,7 +17,6 @@ export function RemindersPage() {
     [],
   )
   const contacts = useLiveQuery(() => db.contacts.orderBy('name').toArray(), [])
-  const activityTypes = useLiveQuery(() => db.activityTypes.toArray(), [])
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -48,38 +49,12 @@ export function RemindersPage() {
     setPriority('medium')
   }
 
-  async function completeReminder(id: number) {
-    const rem = await db.reminders.get(id)
-    if (!rem || rem.status === 'done') return
-    const completedAt = nowISO()
-    await db.reminders.update(id, { status: 'done', completedAt })
-
-    if (rem.contactId) {
-      await db.contactActivityLogs.add({
-        contactId: rem.contactId,
-        kind: 'reminder',
-        title: `תזכורת בוצעה: ${rem.title}`,
-        details: rem.description,
-        date: todayISO(),
-        createdAt: completedAt,
-      })
-
-      const defaultType = activityTypes?.[0]
-      if (defaultType?.id != null) {
-        await db.activities.add({
-          contactId: rem.contactId,
-          activityTypeId: defaultType.id,
-          date: todayISO(),
-          notes: rem.title + (rem.description ? ` — ${rem.description}` : ''),
-          reminderId: id,
-          createdAt: completedAt,
-        })
-      }
-    }
+  async function markDone(id: number) {
+    await completeReminder(id)
   }
 
   async function reopen(id: number) {
-    await db.reminders.update(id, { status: 'open', completedAt: undefined })
+    await reopenReminder(id)
   }
 
   async function remove(id: number) {
@@ -97,8 +72,11 @@ export function RemindersPage() {
 
   const sorted = useMemo(() => {
     const rows = [...(reminders ?? [])]
-    rows.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
-    return rows
+    const open = sortOpenItems(rows.filter((r) => r.status === 'open'))
+    const done = rows
+      .filter((r) => r.status !== 'open')
+      .sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))
+    return [...open, ...done]
   }, [reminders])
 
   const filtered = useMemo(() => {
@@ -181,7 +159,9 @@ export function RemindersPage() {
 
       <section className="panel">
         <div className="actions" style={{ marginBottom: '0.75rem' }}>
-          <h2 style={{ margin: 0, flex: 1 }}>רשימה</h2>
+          <h2 style={{ margin: 0, flex: 1 }}>
+            רשימה ({listCountLabel(filtered.length, reminders?.length ?? 0)})
+          </h2>
           {(['open', 'done', 'all'] as const).map((f) => (
             <button
               key={f}
@@ -230,11 +210,23 @@ export function RemindersPage() {
           </div>
         </div>
         {!filtered.length ? (
-          <div className="empty">אין תזכורות להצגה.</div>
+          <FilterEmpty
+            sourceCount={reminders?.length ?? 0}
+            filteredCount={0}
+            emptyLabel="אין תזכורות להצגה."
+            onClear={() => {
+              setSearch('')
+              setFilter('open')
+              setContactFilter('all')
+            }}
+          />
         ) : (
           <div className="list">
             {filtered.map((r) => (
-              <div key={r.id} className="list-item">
+              <div
+                key={r.id}
+                className={`list-item${r.status === 'open' && isOverdue(r.dueDate) ? ' is-overdue' : ''}`}
+              >
                 <div className="stack-sm">
                   <strong>{r.title}</strong>
                   <div className="meta">
@@ -246,6 +238,7 @@ export function RemindersPage() {
                       'ללא איש קשר'
                     )}
                     {r.dueDate ? ` · ${formatDate(r.dueDate)}` : ''}
+                    {r.status === 'open' && isOverdue(r.dueDate) ? ' · באיחור' : ''}
                   </div>
                   {r.description && <div className="meta">{r.description}</div>}
                 </div>
@@ -256,7 +249,8 @@ export function RemindersPage() {
                     <button
                       type="button"
                       className="btn small shlichut"
-                      onClick={() => r.id != null && completeReminder(r.id)}
+                      onClick={() => r.id != null && markDone(r.id)}
+                      aria-label={`סמן תזכורת "${r.title}" כבוצעה`}
                     >
                       <Icon icon={Check} size={ICON_SIZE_SM} />
                       בוצע
@@ -275,6 +269,7 @@ export function RemindersPage() {
                     type="button"
                     className="btn small ghost"
                     onClick={() => r.id != null && remove(r.id)}
+                    aria-label={`מחק תזכורת "${r.title}"`}
                   >
                     <Icon icon={Trash2} size={ICON_SIZE_SM} />
                     מחק

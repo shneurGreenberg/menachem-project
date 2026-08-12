@@ -20,6 +20,20 @@ import type {
   TeachingPlan,
 } from '../types'
 
+let silentWrites = 0
+
+export function beginSilentWrites() {
+  silentWrites += 1
+}
+
+export function endSilentWrites() {
+  silentWrites = Math.max(0, silentWrites - 1)
+}
+
+export function isSilentWrite(): boolean {
+  return silentWrites > 0
+}
+
 export class AppDatabase extends Dexie {
   contacts!: Table<Contact, number>
   customFieldDefs!: Table<CustomFieldDef, number>
@@ -79,6 +93,7 @@ export class AppDatabase extends Dexie {
               mutate(req) {
                 return table.mutate(req).then((res) => {
                   queueMicrotask(() => {
+                    if (silentWrites > 0) return
                     window.dispatchEvent(new CustomEvent('menachem-data-changed'))
                   })
                   return res
@@ -155,7 +170,7 @@ async function seedIfEmpty() {
   }
 }
 
-seedIfEmpty().catch(console.error)
+export const dbReady = seedIfEmpty().catch(console.error)
 
 export async function getSetting(key: string, fallback = ''): Promise<string> {
   const row = await db.settings.where('key').equals(key).first()

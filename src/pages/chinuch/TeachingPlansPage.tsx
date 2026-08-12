@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Check, ClipboardPlus, Trash2 } from 'lucide-react'
+import { Check, ClipboardPlus, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { DateField } from '../../components/DateField'
@@ -14,6 +14,7 @@ export function TeachingPlansPage() {
   const materials = useLiveQuery(() => db.lessonMaterials.toArray(), [])
   const students = useLiveQuery(() => db.students.toArray(), [])
 
+  const [editId, setEditId] = useState<number | null>(null)
   const [form, setForm] = useState({
     title: '',
     topic: '',
@@ -23,19 +24,27 @@ export function TeachingPlansPage() {
     studentIds: [] as number[],
   })
 
-  async function add(e: React.FormEvent) {
+  async function save(e: React.FormEvent) {
     e.preventDefault()
     if (!form.title.trim() || !form.topic.trim()) return
-    await db.teachingPlans.add({
+    const payload = {
       title: form.title.trim(),
       topic: form.topic.trim(),
       date: form.date || undefined,
       notes: form.notes.trim() || undefined,
       materialIds: form.materialIds,
       studentIds: form.studentIds,
-      status: 'planned',
-      createdAt: nowISO(),
-    })
+    }
+    if (editId != null) {
+      await db.teachingPlans.update(editId, payload)
+    } else {
+      await db.teachingPlans.add({
+        ...payload,
+        status: 'planned',
+        createdAt: nowISO(),
+      })
+    }
+    setEditId(null)
     setForm({
       title: '',
       topic: '',
@@ -44,6 +53,21 @@ export function TeachingPlansPage() {
       materialIds: [],
       studentIds: [],
     })
+  }
+
+  function startEdit(id: number) {
+    const p = (plans ?? []).find((x) => x.id === id)
+    if (!p) return
+    setEditId(id)
+    setForm({
+      title: p.title,
+      topic: p.topic,
+      date: p.date ?? todayISO(),
+      notes: p.notes ?? '',
+      materialIds: [...p.materialIds],
+      studentIds: [...p.studentIds],
+    })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function markDone(id?: number) {
@@ -72,8 +96,8 @@ export function TeachingPlansPage() {
   return (
     <div className="grid" style={{ gap: '1.25rem' }}>
       <section className="panel">
-        <h2>תוכנית הוראה חדשה</h2>
-        <form className="form" onSubmit={add}>
+        <h2>{editId != null ? 'עריכת תוכנית הוראה' : 'תוכנית הוראה חדשה'}</h2>
+        <form className="form" onSubmit={save}>
           <div className="form-row">
             <div className="field">
               <label>כותרת</label>
@@ -134,7 +158,7 @@ export function TeachingPlansPage() {
           </div>
           <button type="submit" className="btn chinuch">
             <Icon icon={ClipboardPlus} size={ICON_SIZE_SM} />
-            יצירה
+            {editId != null ? 'שמירת שינויים' : 'יצירה'}
           </button>
         </form>
       </section>
@@ -169,6 +193,14 @@ export function TeachingPlansPage() {
                       בוצע
                     </button>
                   )}
+                  <button
+                    type="button"
+                    className="btn small secondary"
+                    onClick={() => p.id != null && startEdit(p.id)}
+                  >
+                    <Icon icon={Pencil} size={ICON_SIZE_SM} />
+                    עריכה
+                  </button>
                   <button
                     type="button"
                     className="btn small ghost"

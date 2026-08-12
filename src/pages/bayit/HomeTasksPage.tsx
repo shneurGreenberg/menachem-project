@@ -3,16 +3,15 @@ import { Check, History, List, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { DateField } from '../../components/DateField'
+import { FilterEmpty, listCountLabel } from '../../components/FilterEmpty'
 import { PriorityBadge, StatusBadge } from '../../components/Badges'
 import { db } from '../../db'
 import type { Priority } from '../../types'
-import { formatDate, nowISO } from '../../utils/dates'
+import { formatDate, isOverdue, nowISO } from '../../utils/dates'
+import { sortOpenItems } from '../../utils/reminders'
 
 export function HomeTasksPage() {
-  const tasks = useLiveQuery(async () => {
-    const rows = await db.homeTasks.toArray()
-    return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  }, [])
+  const tasks = useLiveQuery(() => db.homeTasks.toArray(), [])
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [dueDate, setDueDate] = useState('')
@@ -53,7 +52,7 @@ export function HomeTasksPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return (tasks ?? []).filter((t) => {
+    const rows = (tasks ?? []).filter((t) => {
       if (filter !== 'all' && t.status !== filter) return false
       if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false
 
@@ -61,6 +60,11 @@ export function HomeTasksPage() {
       const hay = `${t.title} ${t.description ?? ''}`.toLowerCase()
       return hay.includes(q)
     })
+    const open = sortOpenItems(rows.filter((t) => t.status === 'open'))
+    const done = rows
+      .filter((t) => t.status !== 'open')
+      .sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))
+    return filter === 'done' ? done : filter === 'open' ? open : [...open, ...done]
   }, [tasks, filter, priorityFilter, search])
 
   return (
@@ -102,7 +106,9 @@ export function HomeTasksPage() {
 
       <section className="panel">
         <div className="actions" style={{ marginBottom: '0.75rem' }}>
-          <h2 style={{ margin: 0, flex: 1 }}>משימות ({filtered.length})</h2>
+          <h2 style={{ margin: 0, flex: 1 }}>
+            משימות ({listCountLabel(filtered.length, tasks?.length ?? 0)})
+          </h2>
           {(['open', 'done', 'all'] as const).map((f) => (
             <button
               key={f}
@@ -143,16 +149,29 @@ export function HomeTasksPage() {
           </div>
         </div>
         {!filtered.length ? (
-          <div className="empty">אין משימות.</div>
+          <FilterEmpty
+            sourceCount={tasks?.length ?? 0}
+            filteredCount={0}
+            emptyLabel="אין משימות."
+            onClear={() => {
+              setSearch('')
+              setFilter('open')
+              setPriorityFilter('all')
+            }}
+          />
         ) : (
           <div className="list">
             {filtered.map((t) => (
-              <div key={t.id} className="list-item">
+              <div
+                key={t.id}
+                className={`list-item${t.status === 'open' && isOverdue(t.dueDate) ? ' is-overdue' : ''}`}
+              >
                 <div className="stack-sm">
                   <strong>{t.title}</strong>
                   {t.description && <div className="meta">{t.description}</div>}
                   <div className="meta">
                     {t.dueDate ? formatDate(t.dueDate) : 'ללא תאריך'}
+                    {t.status === 'open' && isOverdue(t.dueDate) ? ' · באיחור' : ''}
                   </div>
                 </div>
                 <div className="actions">

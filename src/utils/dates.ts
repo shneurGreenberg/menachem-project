@@ -1,9 +1,33 @@
-export function todayISO(): string {
-  const d = new Date()
+export function toLocalISODate(d: Date = new Date()): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
+}
+
+export function todayISO(): string {
+  return toLocalISODate(new Date())
+}
+
+export function addDaysLocal(iso: string, days: number): string {
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number)
+  return toLocalISODate(new Date(y, (m ?? 1) - 1, (d ?? 1) + days))
+}
+
+export function monthStartISO(from: Date = new Date()): string {
+  return toLocalISODate(new Date(from.getFullYear(), from.getMonth(), 1))
+}
+
+export function nextMonthStartISO(from: Date = new Date()): string {
+  return toLocalISODate(new Date(from.getFullYear(), from.getMonth() + 1, 1))
+}
+
+/** Inclusive start and exclusive end for a YYYY-MM month in local time. */
+export function monthRange(yearMonth: string): { start: string; endExcl: string } {
+  const [y, m] = yearMonth.split('-').map(Number)
+  const start = `${y}-${String(m).padStart(2, '0')}-01`
+  const endExcl = toLocalISODate(new Date(y, m, 1))
+  return { start, endExcl }
 }
 
 export function nowISO(): string {
@@ -23,6 +47,18 @@ export function daysUntil(dateISO: string): number {
   const now = new Date()
   now.setHours(12, 0, 0, 0)
   return Math.round((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+}
+
+export function isOverdue(dueDate?: string, today = todayISO()): boolean {
+  return Boolean(dueDate && dueDate < today)
+}
+
+export function compareByDueDate(a?: string, b?: string): number {
+  return (a ?? '9999').localeCompare(b ?? '9999')
+}
+
+export function compareHe(a: string, b: string): number {
+  return a.localeCompare(b, 'he')
 }
 
 export function priorityWeight(p: string): number {
@@ -52,14 +88,12 @@ export function parseCategories(raw: string | undefined, fallback: string[]): st
 export function nextAnniversary(dateISO: string): string {
   const [, m, d] = dateISO.slice(0, 10).split('-').map(Number)
   const now = new Date()
-  const year = now.getFullYear()
-  let next = new Date(year, (m ?? 1) - 1, d ?? 1, 12)
-  const today = new Date()
-  today.setHours(12, 0, 0, 0)
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  let next = new Date(now.getFullYear(), (m ?? 1) - 1, d ?? 1)
   if (next < today) {
-    next = new Date(year + 1, (m ?? 1) - 1, d ?? 1, 12)
+    next = new Date(now.getFullYear() + 1, (m ?? 1) - 1, d ?? 1)
   }
-  return next.toISOString().slice(0, 10)
+  return toLocalISODate(next)
 }
 
 export function monthKey(dateISO: string): string {

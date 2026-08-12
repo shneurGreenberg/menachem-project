@@ -13,6 +13,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { MapView } from '../../components/MapView'
 import { SaveBar } from '../../components/SaveBar'
+import { PhoneLink } from '../../components/PhoneLink'
 import { db } from '../../db'
 import { useSaveFeedback } from '../../hooks/useSaveFeedback'
 import { formatDate, nowISO } from '../../utils/dates'
@@ -60,7 +61,7 @@ export function ContactDetailPage() {
   const [imgBusy, setImgBusy] = useState(false)
   const [imgMsg, setImgMsg] = useState('')
   const [baseline, setBaseline] = useState('')
-  const { saving, saved, runSave } = useSaveFeedback()
+  const { saving, saved, error, runSave } = useSaveFeedback()
 
   const formSnapshot = useMemo(() => JSON.stringify(form), [form])
   const dirty = baseline !== '' && formSnapshot !== baseline
@@ -157,8 +158,20 @@ export function ContactDetailPage() {
   }
 
   async function remove() {
-    if (!confirm('למחוק את איש הקשר?')) return
-    await db.contacts.delete(contactId)
+    if (!confirm('למחוק את איש הקשר, התזכורות והיומן שלו?')) return
+    await db.transaction(
+      'rw',
+      db.contacts,
+      db.reminders,
+      db.contactActivityLogs,
+      db.activities,
+      async () => {
+        await db.reminders.where('contactId').equals(contactId).delete()
+        await db.contactActivityLogs.where('contactId').equals(contactId).delete()
+        await db.activities.where('contactId').equals(contactId).delete()
+        await db.contacts.delete(contactId)
+      },
+    )
     navigate('/shlichut/contacts')
   }
 
@@ -190,9 +203,15 @@ export function ContactDetailPage() {
             <div className="field">
               <label>טלפון</label>
               <input
+                type="tel"
                 value={form.phone}
                 onChange={(e) => setForm((s) => ({ ...s, phone: e.target.value }))}
               />
+              {form.phone.trim() && (
+                <div className="meta">
+                  <PhoneLink phone={form.phone} />
+                </div>
+              )}
             </div>
           </div>
           <div className="field">
@@ -313,6 +332,7 @@ export function ContactDetailPage() {
         dirty={dirty}
         saving={saving}
         saved={saved}
+        error={error}
         onSave={() => void save()}
         variant="shlichut"
         context={form.name || 'כרטיס איש קשר'}
@@ -371,7 +391,9 @@ export function ContactDetailPage() {
                   {l.details && <div className="meta">{l.details}</div>}
                   <div className="meta">{formatDate(l.date)}</div>
                 </div>
-                <span className="badge">{l.kind}</span>
+                <span className="badge">
+                  {l.kind === 'reminder' ? 'תזכורת' : l.kind === 'activity' ? 'פעילות' : 'הערה'}
+                </span>
               </div>
             ))}
           </div>

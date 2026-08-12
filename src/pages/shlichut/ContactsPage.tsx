@@ -2,9 +2,10 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { IdCard, Loader2, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { FilterEmpty, listCountLabel } from '../../components/FilterEmpty'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { db } from '../../db'
-import { nowISO } from '../../utils/dates'
+import { compareHe, nowISO } from '../../utils/dates'
 import { geocodeAddress } from '../../utils/geocode'
 
 export function ContactsPage() {
@@ -13,6 +14,7 @@ export function ContactsPage() {
   const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
   const [busy, setBusy] = useState(false)
+  const [geoMsg, setGeoMsg] = useState('')
   const [search, setSearch] = useState('')
   const [locationFilter, setLocationFilter] = useState<
     'all' | 'withCoords' | 'withoutCoords'
@@ -20,7 +22,7 @@ export function ContactsPage() {
 
   const sorted = useMemo(() => {
     const rows = [...(contacts ?? [])]
-    rows.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+    rows.sort((a, b) => compareHe(a.name, b.name))
     return rows
   }, [contacts])
 
@@ -41,6 +43,7 @@ export function ContactsPage() {
     e.preventDefault()
     if (!name.trim()) return
     setBusy(true)
+    setGeoMsg('')
     try {
       let lat: number | undefined
       let lng: number | undefined
@@ -49,6 +52,8 @@ export function ContactsPage() {
         if (geo) {
           lat = geo.lat
           lng = geo.lng
+        } else {
+          setGeoMsg('לא נמצא מיקום לכתובת — אפשר להוסיף ידנית בכרטיס.')
         }
       }
       const ts = nowISO()
@@ -82,7 +87,11 @@ export function ContactsPage() {
             </div>
             <div className="field">
               <label>טלפון</label>
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
             </div>
             <div className="field">
               <label>כתובת</label>
@@ -93,6 +102,7 @@ export function ContactsPage() {
               />
             </div>
           </div>
+          {geoMsg && <p className="muted">{geoMsg}</p>}
           <button type="submit" className="btn shlichut" disabled={busy}>
             {busy ? (
               <>
@@ -110,53 +120,61 @@ export function ContactsPage() {
       </section>
 
       <section className="panel">
-        <h2>רשימה ({filtered.length})</h2>
+        <h2>רשימה ({listCountLabel(filtered.length, sorted.length)})</h2>
+        <div className="actions" style={{ marginBottom: '0.75rem' }}>
+          <div className="field" style={{ flex: 1, minWidth: 220 }}>
+            <label className="sr-only">חיפוש</label>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="חיפוש לפי שם / כתובת / טלפון"
+              aria-label="חיפוש אנשי קשר"
+            />
+          </div>
+          <div className="field" style={{ minWidth: 200 }}>
+            <label className="sr-only">סינון מיקום</label>
+            <select
+              value={locationFilter}
+              onChange={(e) =>
+                setLocationFilter(e.target.value as typeof locationFilter)
+              }
+              aria-label="סינון מיקום"
+            >
+              <option value="all">כל אנשי הקשר</option>
+              <option value="withCoords">עם מיקום</option>
+              <option value="withoutCoords">ללא מיקום</option>
+            </select>
+          </div>
+        </div>
         {!filtered.length ? (
-          <div className="empty">עדיין אין אנשי קשר.</div>
+          <FilterEmpty
+            sourceCount={sorted.length}
+            filteredCount={0}
+            emptyLabel="עדיין אין אנשי קשר."
+            onClear={() => {
+              setSearch('')
+              setLocationFilter('all')
+            }}
+          />
         ) : (
-          <>
-            <div className="actions" style={{ marginBottom: '0.75rem' }}>
-              <div className="field" style={{ flex: 1, minWidth: 220 }}>
-                <label className="sr-only">חיפוש</label>
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="חיפוש לפי שם / כתובת / טלפון"
-                  aria-label="חיפוש אנשי קשר"
-                />
-              </div>
-              <div className="field" style={{ minWidth: 200 }}>
-                <label className="sr-only">סינון מיקום</label>
-                <select
-                  value={locationFilter}
-                  onChange={(e) =>
-                    setLocationFilter(e.target.value as typeof locationFilter)
-                  }
-                  aria-label="סינון מיקום"
-                >
-                  <option value="all">כל אנשי הקשר</option>
-                  <option value="withCoords">עם מיקום</option>
-                  <option value="withoutCoords">ללא מיקום</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="list">
-              {filtered.map((c) => (
+          <div className="list">
+            {filtered.map((c) => (
               <Link key={c.id} to={`/shlichut/contacts/${c.id}`} className="list-item">
-                <div className="stack-sm">
+                <div className="actions" style={{ gap: '0.65rem', alignItems: 'center' }}>
                   {c.imageDataUrl ? (
-                    <img
-                      className="contact-avatar"
-                      src={c.imageDataUrl}
-                      alt={c.name}
-                    />
-                  ) : null}
-                  <strong>{c.name}</strong>
-                  <div className="meta">
-                    {c.address || 'ללא כתובת'}
-                    {c.phone ? ` · ${c.phone}` : ''}
-                    {c.lat != null ? ' · על המפה' : ''}
+                    <img className="contact-avatar" src={c.imageDataUrl} alt="" />
+                  ) : (
+                    <div className="contact-avatar contact-avatar-placeholder">
+                      {c.name.slice(0, 1)}
+                    </div>
+                  )}
+                  <div className="stack-sm">
+                    <strong>{c.name}</strong>
+                    <div className="meta">
+                      {c.address || 'ללא כתובת'}
+                      {c.phone ? ` · ${c.phone}` : ''}
+                      {c.lat != null ? ' · על המפה' : ''}
+                    </div>
                   </div>
                 </div>
                 <span className="btn small secondary">
@@ -164,9 +182,8 @@ export function ContactsPage() {
                   כרטיס
                 </span>
               </Link>
-              ))}
-            </div>
-          </>
+            ))}
+          </div>
         )}
       </section>
     </div>

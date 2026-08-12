@@ -709,6 +709,27 @@ table.data th {
   color: var(--ok);
 }
 
+.save-bar-msg.error {
+  color: var(--danger);
+}
+
+.list-item.is-overdue {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.phone-link {
+  color: var(--shlichut);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.over-budget {
+  color: var(--danger);
+  font-weight: 600;
+}
+
 /* Leaflet tooltip: small contact card on hover */
 .contact-tooltip {
   border: none !important;

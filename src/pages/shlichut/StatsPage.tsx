@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { DateField } from '../../components/DateField'
 import { db } from '../../db'
-import { formatDate, formatMoney, monthKey, nowISO, todayISO } from '../../utils/dates'
+import { formatDate, formatMoney, monthKey, monthRange, nowISO, todayISO } from '../../utils/dates'
 
 export function StatsPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all')
@@ -56,12 +56,7 @@ export function StatsPage() {
     let coll: any = db.activities
 
     if (resolvedMonth) {
-      const [yS, mS] = resolvedMonth.split('-')
-      const y = Number(yS)
-      const m = Number(mS)
-      const start = `${y}-${String(m).padStart(2, '0')}-01`
-      const endExclDate = new Date(y, m, 1) // next month
-      const endExcl = endExclDate.toISOString().slice(0, 10)
+      const { start, endExcl } = monthRange(resolvedMonth)
       coll = coll.where('date').between(start, endExcl, true, false)
     } else if (resolvedType != null) {
       coll = coll.where('activityTypeId').equals(resolvedType)
@@ -79,7 +74,7 @@ export function StatsPage() {
     }
 
     if (resolvedMonth && typeFilter === 'all' && contactFilter === 'all') {
-      // nothing else to filter; avoids extra .filter overhead
+      // indexed month range only
     }
 
     return coll.toArray()

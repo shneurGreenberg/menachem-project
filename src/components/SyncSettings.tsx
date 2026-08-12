@@ -2,7 +2,7 @@ import QRCode from 'qrcode'
 import { Cloud, RefreshCw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { buildPersonalSyncUrl } from '../firebase/configStore'
-import { getSyncStatus, startAutoSync, subscribeSyncStatus, syncNow } from '../firebase/sync'
+import { getSyncStatus, subscribeSyncStatus, syncNow } from '../firebase/sync'
 import type { SyncStatus } from '../firebase/types'
 import { Icon, ICON_SIZE_SM } from './icons'
 
@@ -19,10 +19,6 @@ export function SyncSettings() {
       margin: 1,
       color: { dark: '#1f2a24', light: '#fffdf8' },
     }).then(setQr)
-  }, [status.state])
-
-  useEffect(() => {
-    void startAutoSync()
   }, [])
 
   return (

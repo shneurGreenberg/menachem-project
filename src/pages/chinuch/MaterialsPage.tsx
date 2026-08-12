@@ -1,14 +1,15 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { BookPlus, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { FilterEmpty, listCountLabel } from '../../components/FilterEmpty'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { db } from '../../db'
-import { nowISO } from '../../utils/dates'
+import { compareHe, nowISO } from '../../utils/dates'
 
 export function MaterialsPage() {
   const materials = useLiveQuery(async () => {
     const rows = await db.lessonMaterials.toArray()
-    return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    return rows.sort((a, b) => compareHe(a.title, b.title))
   }, [])
   const [form, setForm] = useState({
     title: '',
@@ -115,53 +116,63 @@ export function MaterialsPage() {
 
       <section className="panel">
         <div className="actions" style={{ marginBottom: '0.75rem' }}>
-          <h2 style={{ margin: 0, flex: 1 }}>מאגר ({filtered.length})</h2>
+          <h2 style={{ margin: 0, flex: 1 }}>
+            מאגר ({listCountLabel(filtered.length, materials?.length ?? 0)})
+          </h2>
+        </div>
+        <div className="actions" style={{ marginBottom: '0.75rem' }}>
+          <div className="field" style={{ flex: 1, minWidth: 220 }}>
+            <label className="sr-only">חיפוש</label>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="חיפוש לפי כותרת / תוכן / תגיות"
+              aria-label="חיפוש חומרים"
+            />
+          </div>
+          <div className="field" style={{ minWidth: 220 }}>
+            <label className="sr-only">סינון תג</label>
+            <select
+              value={tagFilter}
+              onChange={(e) => setTagFilter(e.target.value)}
+              aria-label="סינון לפי תג"
+            >
+              <option value="all">כל התגיות</option>
+              {availableTags.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         {!filtered.length ? (
-          <div className="empty">אין חומרים.</div>
+          <FilterEmpty
+            sourceCount={materials?.length ?? 0}
+            filteredCount={0}
+            emptyLabel="אין חומרים."
+            onClear={() => {
+              setSearch('')
+              setTagFilter('all')
+            }}
+          />
         ) : (
-          <>
-            <div className="actions" style={{ marginBottom: '0.75rem' }}>
-              <div className="field" style={{ flex: 1, minWidth: 220 }}>
-                <label className="sr-only">חיפוש</label>
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="חיפוש לפי כותרת / תוכן / תגיות"
-                  aria-label="חיפוש חומרים"
-                />
-              </div>
-              <div className="field" style={{ minWidth: 220 }}>
-                <label className="sr-only">סינון תג</label>
-                <select
-                  value={tagFilter}
-                  onChange={(e) => setTagFilter(e.target.value)}
-                  aria-label="סינון לפי תג"
-                >
-                  <option value="all">כל התגיות</option>
-                  {availableTags.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="list">
-              {filtered.map((m) => (
-                <div key={m.id} className="list-item">
-                  <div className="stack-sm">
-                    <strong>{m.title}</strong>
-                    {m.url && (
-                      <a
-                        href={m.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="meta"
-                      >
-                        {m.url}
-                      </a>
-                    )}
+          <div className="list">
+            {filtered.map((m) => (
+              <div key={m.id} className="list-item">
+                <div className="stack-sm">
+                  <strong>{m.title}</strong>
+                  {m.url && (
+                    <a
+                      href={m.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="meta"
+                      title={m.url}
+                    >
+                      פתיחת קישור
+                    </a>
+                  )}
                     {m.content && (
                       <div className="meta">{m.content.slice(0, 160)}</div>
                     )}
@@ -186,7 +197,6 @@ export function MaterialsPage() {
                 </div>
               ))}
             </div>
-          </>
         )}
       </section>
     </div>
