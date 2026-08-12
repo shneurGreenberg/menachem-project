@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, Save, Trash2 } from 'lucide-react'
+import { Moon, Plus, Save, Sun, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Icon, ICON_SIZE_SM } from '../components/icons'
 import { SaveBar } from '../components/SaveBar'
@@ -8,6 +8,7 @@ import { db, getSetting, setSetting } from '../db'
 import { useSaveFeedback } from '../hooks/useSaveFeedback'
 import type { CustomFieldDef, FieldType } from '../types'
 import { parseCategories } from '../utils/dates'
+import { getStoredTheme, persistTheme, type Theme } from '../theme'
 
 const HOME_INCOME = ['משכורת', 'מתנות', 'אחר']
 const HOME_EXPENSE = ['מזון', 'דיור', 'תחבורה', 'בריאות', 'חינוך', 'אחר']
@@ -23,6 +24,7 @@ export function SettingsPage() {
   const [leadDays, setLeadDays] = useState('45')
   const [savedLeadDays, setSavedLeadDays] = useState('45')
   const [msg, setMsg] = useState('')
+  const [theme, setTheme] = useState<Theme>(getStoredTheme())
   const { saving, saved, error, runSave } = useSaveFeedback()
 
   const leadDirty = leadDays !== savedLeadDays
@@ -40,7 +42,15 @@ export function SettingsPage() {
       setLeadDays(value)
       setSavedLeadDays(value)
     })
+    void getSetting('theme', getStoredTheme()).then((value) => {
+      if (value === 'dark' || value === 'light') setTheme(value)
+    })
   }, [])
+
+  async function chooseTheme(next: Theme) {
+    setTheme(next)
+    await persistTheme(next)
+  }
 
   async function saveLead() {
     await runSave(async () => {
@@ -101,7 +111,7 @@ export function SettingsPage() {
     <div>
       <div className="page-header">
         <h1>הגדרות</h1>
-        <p>סנכרון, שדות מותאמים, קטגוריות וסוגי פעילות.</p>
+        <p>סנכרון, תצוגה, שדות מותאמים וקטגוריות.</p>
       </div>
 
       {msg && (
@@ -112,6 +122,35 @@ export function SettingsPage() {
 
       <div className="grid" style={{ gap: '1.25rem' }}>
         <SyncSettings />
+
+        <section className="panel">
+          <h2>תצוגה</h2>
+          <div className="theme-row">
+            <p className="muted" style={{ margin: 0 }}>
+              מצב כהה נוח בערב ובטלפון.
+            </p>
+            <div className="date-mode-toggle" role="group" aria-label="מצב תצוגה">
+              <button
+                type="button"
+                className={theme === 'light' ? 'is-active' : ''}
+                onClick={() => void chooseTheme('light')}
+                aria-pressed={theme === 'light'}
+              >
+                <Icon icon={Sun} size={ICON_SIZE_SM} />
+                בהיר
+              </button>
+              <button
+                type="button"
+                className={theme === 'dark' ? 'is-active' : ''}
+                onClick={() => void chooseTheme('dark')}
+                aria-pressed={theme === 'dark'}
+              >
+                <Icon icon={Moon} size={ICON_SIZE_SM} />
+                כהה
+              </button>
+            </div>
+          </div>
+        </section>
 
         <section className="panel">
           <h2>התראות שנתיות לתוכניות</h2>

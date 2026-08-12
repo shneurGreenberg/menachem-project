@@ -4,6 +4,10 @@ import './index.css'
 import App from './App.tsx'
 import './db'
 import { startCloudSync } from './firebase/boot'
+import { bootThemeFromDb } from './theme'
+
+startCloudSync()
+void bootThemeFromDb()
 
 startCloudSync()
 

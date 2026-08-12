@@ -9,6 +9,14 @@
   --ink-muted: #5a655e;
   --border: #d9d2c4;
   --shadow: 0 8px 28px rgba(31, 42, 36, 0.08);
+  --nav-bg: rgba(250, 247, 241, 0.92);
+  --input-bg: #fffdf8;
+  --empty-bg: rgba(255, 253, 248, 0.6);
+  --on-accent: #fff;
+  --bg-glow-1: #e8efe9;
+  --bg-glow-2: #ebe4d4;
+  --bg-glow-3: #f7f3ea;
+  --bg-glow-4: #ebe6db;
 
   --shlichut: #2f6f5e;
   --shlichut-soft: #e4f0eb;
@@ -23,6 +31,37 @@
   --radius: 12px;
   --nav-h: 64px;
   --max: 1100px;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #141612;
+  --bg-elevated: #1c1f1a;
+  --surface: #232720;
+  --ink: #f3efe6;
+  --ink-muted: #b4b0a4;
+  --border: #3c4238;
+  --shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+  --nav-bg: rgba(20, 22, 18, 0.92);
+  --input-bg: #1a1d18;
+  --empty-bg: rgba(28, 31, 26, 0.65);
+  --on-accent: #141612;
+  --bg-glow-1: #1a2a24;
+  --bg-glow-2: #2a2418;
+  --bg-glow-3: #181a16;
+  --bg-glow-4: #141612;
+
+  --shlichut: #7dccb4;
+  --shlichut-soft: #1e332c;
+  --chinuch: #8bb4d4;
+  --chinuch-soft: #1d2c38;
+  --bayit: #dcc07a;
+  --bayit-soft: #3a3018;
+  --danger: #e08a8a;
+  --danger-soft: #3a2222;
+  --ok: #7dccb4;
+  --warn: #dcc07a;
+  color-scheme: dark;
 }
 
 * {
@@ -39,9 +78,9 @@ body {
   font-family: var(--font-body);
   color: var(--ink);
   background:
-    radial-gradient(1200px 600px at 100% -10%, #e8efe9 0%, transparent 55%),
-    radial-gradient(900px 500px at -10% 20%, #ebe4d4 0%, transparent 50%),
-    linear-gradient(180deg, #f7f3ea 0%, var(--bg) 40%, #ebe6db 100%);
+    radial-gradient(1200px 600px at 100% -10%, var(--bg-glow-1) 0%, transparent 55%),
+    radial-gradient(900px 500px at -10% 20%, var(--bg-glow-2) 0%, transparent 50%),
+    linear-gradient(180deg, var(--bg-glow-3) 0%, var(--bg) 40%, var(--bg-glow-4) 100%);
   line-height: 1.5;
 }
 
@@ -90,7 +129,7 @@ p {
   align-items: center;
   gap: 1rem;
   padding: 0 1.25rem;
-  background: rgba(250, 247, 241, 0.92);
+  background: var(--nav-bg);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
 }
@@ -170,7 +209,7 @@ p {
 
 .nav-links a.active {
   background: var(--ink);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .nav-links a.dept-shlichut.active {
@@ -331,8 +370,8 @@ p {
   color: var(--chinuch);
 }
 .badge.done {
-  background: #e7efe9;
-  color: var(--ok);
+  background: var(--ok);
+  color: var(--on-accent);
 }
 
 .btn {
@@ -344,7 +383,7 @@ p {
   border: 1px solid transparent;
   border-radius: 10px;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-accent);
   cursor: pointer;
   font-weight: 600;
   transition: opacity 0.15s ease, transform 0.15s ease;
@@ -463,16 +502,19 @@ p {
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 .date-mode-toggle button.is-active {
   background: var(--ink);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .date-today-btn {
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--input-bg);
   color: var(--ink);
   padding: 0.28rem 0.7rem;
   border-radius: 999px;
@@ -484,13 +526,13 @@ p {
 
 .date-today-btn.is-active {
   background: var(--ink);
-  color: #fff;
+  color: var(--on-accent);
   border-color: var(--ink);
 }
 
 .date-today-btn.is-flash {
   background: var(--shlichut);
-  color: #fff;
+  color: var(--on-accent);
   border-color: var(--shlichut);
 }
 
@@ -532,7 +574,7 @@ p {
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--input-bg);
 }
 
 .field textarea {
@@ -553,7 +595,7 @@ p {
   color: var(--ink-muted);
   border: 1px dashed var(--border);
   border-radius: var(--radius);
-  background: rgba(255, 253, 248, 0.6);
+  background: var(--empty-bg);
 }
 
 .shortcut {
@@ -817,6 +859,18 @@ table.data th {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+:root[data-theme='dark'] .leaflet-tile-pane {
+  filter: invert(0.9) hue-rotate(180deg) brightness(0.95) saturate(0.55);
+}
+
+.theme-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 700px) {

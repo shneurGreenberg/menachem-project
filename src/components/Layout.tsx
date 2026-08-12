@@ -1,3 +1,4 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import {
   GraduationCap,
   HeartHandshake,
@@ -6,7 +7,10 @@ import {
   Settings,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { useEffect } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
+import { db } from '../db'
+import { applyTheme } from '../theme'
 import { Icon, ICON_SIZE_SM } from './icons'
 import { SyncBadge } from './SyncBadge'
 
@@ -25,6 +29,16 @@ const links: {
 ]
 
 export function Layout() {
+  const themeRow = useLiveQuery(
+    () => db.settings.where('key').equals('theme').first(),
+    [],
+  )
+
+  useEffect(() => {
+    const value = themeRow?.value
+    if (value === 'dark' || value === 'light') applyTheme(value)
+  }, [themeRow])
+
   return (
     <div className="app-shell">
       <header className="top-nav">
