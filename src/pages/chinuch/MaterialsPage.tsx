@@ -4,10 +4,10 @@ import { db } from '../../db'
 import { nowISO } from '../../utils/dates'
 
 export function MaterialsPage() {
-  const materials = useLiveQuery(
-    () => db.lessonMaterials.orderBy('createdAt').reverse().toArray(),
-    [],
-  )
+  const materials = useLiveQuery(async () => {
+    const rows = await db.lessonMaterials.toArray()
+    return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  }, [])
   const [form, setForm] = useState({
     title: '',
     content: '',

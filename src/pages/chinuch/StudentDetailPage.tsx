@@ -1,7 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { SaveBar } from '../../components/SaveBar'
 import { db } from '../../db'
+import { useSaveFeedback } from '../../hooks/useSaveFeedback'
 import { formatDate, todayISO } from '../../utils/dates'
 
 export function StudentDetailPage() {
@@ -33,17 +35,24 @@ export function StudentDetailPage() {
     date: todayISO(),
     notes: '',
   })
+  const [baseline, setBaseline] = useState('')
+  const { saving, saved, runSave } = useSaveFeedback()
+
+  const formSnapshot = useMemo(() => JSON.stringify(form), [form])
+  const dirty = baseline !== '' && formSnapshot !== baseline
 
   useEffect(() => {
     if (!student) return
-    setForm({
+    const initial = {
       name: student.name,
       phone: student.phone ?? '',
       parentName: student.parentName ?? '',
       parentPhone: student.parentPhone ?? '',
       notes: student.notes ?? '',
       topicsLearned: student.topicsLearned ?? '',
-    })
+    }
+    setForm(initial)
+    setBaseline(JSON.stringify(initial))
   }, [student])
 
   if (!Number.isFinite(studentId)) {
@@ -58,15 +67,18 @@ export function StudentDetailPage() {
     )
   }
 
-  async function save(e: React.FormEvent) {
-    e.preventDefault()
-    await db.students.update(studentId, {
-      name: form.name.trim(),
-      phone: form.phone.trim() || undefined,
-      parentName: form.parentName.trim() || undefined,
-      parentPhone: form.parentPhone.trim() || undefined,
-      notes: form.notes.trim() || undefined,
-      topicsLearned: form.topicsLearned.trim() || undefined,
+  async function save(e?: React.FormEvent) {
+    e?.preventDefault()
+    await runSave(async () => {
+      await db.students.update(studentId, {
+        name: form.name.trim(),
+        phone: form.phone.trim() || undefined,
+        parentName: form.parentName.trim() || undefined,
+        parentPhone: form.parentPhone.trim() || undefined,
+        notes: form.notes.trim() || undefined,
+        topicsLearned: form.topicsLearned.trim() || undefined,
+      })
+      setBaseline(formSnapshot)
     })
   }
 
@@ -169,6 +181,14 @@ export function StudentDetailPage() {
           </button>
         </form>
       </section>
+
+      <SaveBar
+        dirty={dirty}
+        saving={saving}
+        saved={saved}
+        onSave={() => void save()}
+        variant="chinuch"
+      />
 
       <section className="panel">
         <h3>ציונים</h3>

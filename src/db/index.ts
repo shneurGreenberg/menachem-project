@@ -62,6 +62,10 @@ export class AppDatabase extends Dexie {
       settings: '++id, &key',
       contactActivityLogs: '++id, contactId, date',
     })
+    this.version(2).stores({
+      lessonMaterials: '++id, title, createdAt',
+      homeTasks: '++id, status, dueDate, priority, createdAt',
+    })
   }
 }
 

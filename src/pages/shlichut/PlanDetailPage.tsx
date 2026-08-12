@@ -1,7 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { SaveBar } from '../../components/SaveBar'
 import { db } from '../../db'
+import { useSaveFeedback } from '../../hooks/useSaveFeedback'
 import { formatDate, formatMoney, nowISO, todayISO } from '../../utils/dates'
 
 export function PlanDetailPage() {
@@ -35,6 +37,12 @@ export function PlanDetailPage() {
     whatDidnt: '',
     notesForNextYear: '',
   })
+  const { saving, saved, runSave } = useSaveFeedback()
+
+  const summaryDirty =
+    summary.whatWorked.trim() !== '' ||
+    summary.whatDidnt.trim() !== '' ||
+    summary.notesForNextYear.trim() !== ''
 
   if (!Number.isFinite(planId)) {
     return <div className="empty">מזהה לא תקין</div>
@@ -88,19 +96,21 @@ export function PlanDetailPage() {
     await db.shoppingItems.update(id, { purchased: !purchased })
   }
 
-  async function saveSummary(e: React.FormEvent) {
-    e.preventDefault()
-    const year = Number(plan!.targetDate.slice(0, 4))
-    await db.planSummaries.add({
-      planId,
-      year,
-      whatWorked: summary.whatWorked.trim(),
-      whatDidnt: summary.whatDidnt.trim(),
-      notesForNextYear: summary.notesForNextYear.trim(),
-      createdAt: nowISO(),
+  async function saveSummary(e?: React.FormEvent) {
+    e?.preventDefault()
+    await runSave(async () => {
+      const year = Number(plan!.targetDate.slice(0, 4))
+      await db.planSummaries.add({
+        planId,
+        year,
+        whatWorked: summary.whatWorked.trim(),
+        whatDidnt: summary.whatDidnt.trim(),
+        notesForNextYear: summary.notesForNextYear.trim(),
+        createdAt: nowISO(),
+      })
+      await db.plans.update(planId, { status: 'completed', updatedAt: nowISO() })
+      setSummary({ whatWorked: '', whatDidnt: '', notesForNextYear: '' })
     })
-    await db.plans.update(planId, { status: 'completed', updatedAt: nowISO() })
-    setSummary({ whatWorked: '', whatDidnt: '', notesForNextYear: '' })
   }
 
   async function removePlan() {
@@ -290,6 +300,14 @@ export function PlanDetailPage() {
           </div>
         )}
       </section>
+
+      <SaveBar
+        dirty={summaryDirty}
+        saving={saving}
+        saved={saved}
+        onSave={() => void saveSummary()}
+        variant="shlichut"
+      />
     </div>
   )
 }

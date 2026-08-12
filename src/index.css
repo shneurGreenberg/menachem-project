@@ -140,7 +140,7 @@ p {
   flex: 1;
   width: min(100%, var(--max));
   margin: 0 auto;
-  padding: 1.5rem 1.25rem 3rem;
+  padding: 1.5rem 1.25rem 4.5rem;
 }
 
 .page-header {
@@ -501,6 +501,31 @@ table.data th {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.save-bar {
+  position: fixed;
+  bottom: 0;
+  inset-inline: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.25rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -6px 24px rgba(31, 42, 36, 0.12);
+  animation: fadeUp 0.2s ease both;
+}
+
+.save-bar-msg {
+  font-weight: 600;
+  color: var(--warn);
+}
+
+.save-bar-msg.saved {
+  color: var(--ok);
 }
 
 @media (max-width: 700px) {

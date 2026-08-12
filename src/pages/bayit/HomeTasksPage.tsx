@@ -6,10 +6,10 @@ import type { Priority } from '../../types'
 import { formatDate, nowISO } from '../../utils/dates'
 
 export function HomeTasksPage() {
-  const tasks = useLiveQuery(
-    () => db.homeTasks.orderBy('createdAt').reverse().toArray(),
-    [],
-  )
+  const tasks = useLiveQuery(async () => {
+    const rows = await db.homeTasks.toArray()
+    return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  }, [])
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [dueDate, setDueDate] = useState('')

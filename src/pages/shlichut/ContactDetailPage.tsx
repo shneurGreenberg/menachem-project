@@ -1,8 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { MapView } from '../../components/MapView'
+import { SaveBar } from '../../components/SaveBar'
 import { db } from '../../db'
+import { useSaveFeedback } from '../../hooks/useSaveFeedback'
 import { formatDate, nowISO } from '../../utils/dates'
 import { geocodeAddress } from '../../utils/geocode'
 
@@ -43,10 +45,15 @@ export function ContactDetailPage() {
     customFields: {} as Record<string, string>,
   })
   const [geoMsg, setGeoMsg] = useState('')
+  const [baseline, setBaseline] = useState('')
+  const { saving, saved, runSave } = useSaveFeedback()
+
+  const formSnapshot = useMemo(() => JSON.stringify(form), [form])
+  const dirty = baseline !== '' && formSnapshot !== baseline
 
   useEffect(() => {
     if (!contact) return
-    setForm({
+    const initial = {
       name: contact.name,
       address: contact.address,
       phone: contact.phone ?? '',
@@ -54,7 +61,9 @@ export function ContactDetailPage() {
       lat: contact.lat,
       lng: contact.lng,
       customFields: { ...contact.customFields },
-    })
+    }
+    setForm(initial)
+    setBaseline(JSON.stringify(initial))
   }, [contact])
 
   if (!Number.isFinite(contactId)) {
@@ -71,19 +80,22 @@ export function ContactDetailPage() {
     )
   }
 
-  async function save(e: React.FormEvent) {
-    e.preventDefault()
-    await db.contacts.update(contactId, {
-      name: form.name.trim(),
-      address: form.address.trim(),
-      phone: form.phone.trim() || undefined,
-      notes: form.notes.trim() || undefined,
-      lat: form.lat,
-      lng: form.lng,
-      customFields: form.customFields,
-      updatedAt: nowISO(),
+  async function save(e?: React.FormEvent) {
+    e?.preventDefault()
+    await runSave(async () => {
+      await db.contacts.update(contactId, {
+        name: form.name.trim(),
+        address: form.address.trim(),
+        phone: form.phone.trim() || undefined,
+        notes: form.notes.trim() || undefined,
+        lat: form.lat,
+        lng: form.lng,
+        customFields: form.customFields,
+        updatedAt: nowISO(),
+      })
+      setBaseline(formSnapshot)
+      setGeoMsg('נשמר.')
     })
-    setGeoMsg('נשמר.')
   }
 
   async function geocode() {
@@ -196,6 +208,14 @@ export function ContactDetailPage() {
           </button>
         </form>
       </section>
+
+      <SaveBar
+        dirty={dirty}
+        saving={saving}
+        saved={saved}
+        onSave={() => void save()}
+        variant="shlichut"
+      />
 
       <section className="panel">
         <h3>מפה — גרור את הסימון לעדכון מיקום</h3>

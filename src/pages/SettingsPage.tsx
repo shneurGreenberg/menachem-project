@@ -1,6 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
+import { SaveBar } from '../components/SaveBar'
 import { db, getSetting, setSetting } from '../db'
+import { useSaveFeedback } from '../hooks/useSaveFeedback'
 import type { CustomFieldDef, FieldType } from '../types'
 import { downloadJson, exportAllData, importAllData } from '../utils/backup'
 import { nowISO } from '../utils/dates'
@@ -12,8 +14,12 @@ export function SettingsPage() {
   )
   const activityTypes = useLiveQuery(() => db.activityTypes.toArray(), [])
   const [leadDays, setLeadDays] = useState('45')
+  const [savedLeadDays, setSavedLeadDays] = useState('45')
   const [msg, setMsg] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+  const { saving, saved, runSave } = useSaveFeedback()
+
+  const leadDirty = leadDays !== savedLeadDays
 
   const [fieldForm, setFieldForm] = useState({
     label: '',
@@ -24,14 +30,21 @@ export function SettingsPage() {
   const [typeName, setTypeName] = useState('')
 
   useEffect(() => {
-    void getSetting('planResurfaceLeadDays', '45').then(setLeadDays)
+    void getSetting('planResurfaceLeadDays', '45').then((value) => {
+      setLeadDays(value)
+      setSavedLeadDays(value)
+    })
   }, [])
 
   async function saveLead() {
-    const n = Math.min(90, Math.max(7, Number(leadDays) || 45))
-    await setSetting('planResurfaceLeadDays', String(n))
-    setLeadDays(String(n))
-    setMsg('ימי הקדמה נשמרו.')
+    await runSave(async () => {
+      const n = Math.min(90, Math.max(7, Number(leadDays) || 45))
+      const value = String(n)
+      await setSetting('planResurfaceLeadDays', value)
+      setLeadDays(value)
+      setSavedLeadDays(value)
+      setMsg('ימי הקדמה נשמרו.')
+    })
   }
 
   async function addField(e: React.FormEvent) {
@@ -279,6 +292,13 @@ export function SettingsPage() {
           </form>
         </section>
       </div>
+
+      <SaveBar
+        dirty={leadDirty}
+        saving={saving}
+        saved={saved}
+        onSave={() => void saveLead()}
+      />
     </div>
   )
 }
