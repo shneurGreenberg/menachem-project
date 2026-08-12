@@ -54,110 +54,104 @@ export function DateField({ label, value, onChange, required }: DateFieldProps) 
     <div className="field date-field">
       <div className="date-field-header">
         <label>{label}</label>
-        <div className="date-mode-toggle" role="group" aria-label="סוג לוח שנה">
+        <div className="date-field-tools">
+          <div className="date-mode-toggle" role="group" aria-label="סוג לוח שנה">
+            <button
+              type="button"
+              className={mode === 'greg' ? 'is-active' : ''}
+              onClick={() => setMode('greg')}
+              aria-pressed={mode === 'greg'}
+            >
+              לועזי
+            </button>
+            <button
+              type="button"
+              className={mode === 'hebrew' ? 'is-active' : ''}
+              onClick={() => setMode('hebrew')}
+              aria-pressed={mode === 'hebrew'}
+            >
+              עברי
+            </button>
+          </div>
           <button
             type="button"
-            className={`btn small ${mode === 'greg' ? '' : 'secondary'}`}
-            onClick={() => setMode('greg')}
-            aria-pressed={mode === 'greg'}
-            aria-label="קלט לועזי"
+            className="date-today-btn"
+            onClick={() => onChange(todayISO())}
           >
-            לועזי
-          </button>
-          <button
-            type="button"
-            className={`btn small ${mode === 'hebrew' ? '' : 'secondary'}`}
-            onClick={() => setMode('hebrew')}
-            aria-pressed={mode === 'hebrew'}
-            aria-label="קלט עברי"
-          >
-            עברי
+            היום
           </button>
         </div>
-        <button
-          type="button"
-          className="btn small secondary"
-          onClick={() => onChange(todayISO())}
-          aria-label="היום"
-        >
-          היום
-        </button>
       </div>
 
       {mode === 'greg' ? (
         <input
+          className="date-greg-input"
           type="date"
           required={required}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
       ) : (
-        <div className="form-row hebrew-date-row">
-          <div className="field">
-            <label className="sr-only">יום</label>
-            <select
-              required={required}
-              value={value ? hDay : ''}
-              onChange={(e) => {
-                const day = Number(e.target.value)
-                if (!day) return
-                updateHebrew(hYear, hMonth, day)
-              }}
-            >
-              {!value && <option value="">יום</option>}
-              {dayOptions.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label className="sr-only">חודש</label>
-            <select
-              required={required}
-              value={value ? hMonth : ''}
-              onChange={(e) => {
-                const month = Number(e.target.value)
-                if (!month) return
-                updateHebrew(hYear, month, hDay || 1)
-              }}
-            >
-              {!value && <option value="">חודש</option>}
-              {monthOptions.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label className="sr-only">שנה</label>
-            <select
-              required={required}
-              value={value ? hYear : ''}
-              onChange={(e) => {
-                const year = Number(e.target.value)
-                if (!year) return
-                updateHebrew(year, hMonth || 1, hDay || 1)
-              }}
-            >
-              {!value && <option value="">שנה</option>}
-              {yearOptions.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="hebrew-date-row">
+          <select
+            aria-label="יום"
+            required={required}
+            value={value ? hDay : ''}
+            onChange={(e) => {
+              const day = Number(e.target.value)
+              if (!day) return
+              updateHebrew(hYear, hMonth, day)
+            }}
+          >
+            {!value && <option value="">יום</option>}
+            {dayOptions.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="חודש"
+            required={required}
+            value={value ? hMonth : ''}
+            onChange={(e) => {
+              const month = Number(e.target.value)
+              if (!month) return
+              updateHebrew(hYear, month, hDay || 1)
+            }}
+          >
+            {!value && <option value="">חודש</option>}
+            {monthOptions.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="שנה"
+            required={required}
+            value={value ? hYear : ''}
+            onChange={(e) => {
+              const year = Number(e.target.value)
+              if (!year) return
+              updateHebrew(year, hMonth || 1, hDay || 1)
+            }}
+          >
+            {!value && <option value="">שנה</option>}
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
-      <div className="meta date-field-hint">
+      <div className="date-field-hint">
         <Icon icon={Calendar} size={ICON_SIZE_SM} />
-        <span>
-          לועזי: {formatDate(value)} · עברי: {formatHebrewDate(value)}
-        </span>
+        <span>לועזי {formatDate(value)}</span>
+        <span className="date-hint-sep">·</span>
+        <span>עברי {formatHebrewDate(value)}</span>
       </div>
     </div>
   )
