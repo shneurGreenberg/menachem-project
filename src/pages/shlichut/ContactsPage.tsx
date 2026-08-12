@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { IdCard, Loader2, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { db } from '../../db'
@@ -8,11 +8,34 @@ import { nowISO } from '../../utils/dates'
 import { geocodeAddress } from '../../utils/geocode'
 
 export function ContactsPage() {
-  const contacts = useLiveQuery(() => db.contacts.orderBy('name').toArray(), [])
+  const contacts = useLiveQuery(() => db.contacts.toArray(), [])
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
   const [busy, setBusy] = useState(false)
+  const [search, setSearch] = useState('')
+  const [locationFilter, setLocationFilter] = useState<
+    'all' | 'withCoords' | 'withoutCoords'
+  >('all')
+
+  const sorted = useMemo(() => {
+    const rows = [...(contacts ?? [])]
+    rows.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+    return rows
+  }, [contacts])
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return sorted.filter((c) => {
+      const hasCoords = c.lat != null && c.lng != null
+      if (locationFilter === 'withCoords' && !hasCoords) return false
+      if (locationFilter === 'withoutCoords' && hasCoords) return false
+
+      if (!q) return true
+      const hay = `${c.name} ${c.address ?? ''} ${c.phone ?? ''}`.toLowerCase()
+      return hay.includes(q)
+    })
+  }, [sorted, search, locationFilter])
 
   async function addContact(e: React.FormEvent) {
     e.preventDefault()
@@ -87,25 +110,46 @@ export function ContactsPage() {
       </section>
 
       <section className="panel">
-        <h2>רשימה ({contacts?.length ?? 0})</h2>
-        {!contacts?.length ? (
+        <h2>רשימה ({filtered.length})</h2>
+        {!filtered.length ? (
           <div className="empty">עדיין אין אנשי קשר.</div>
         ) : (
-          <div className="list">
-            {contacts.map((c) => (
+          <>
+            <div className="actions" style={{ marginBottom: '0.75rem' }}>
+              <div className="field" style={{ flex: 1, minWidth: 220 }}>
+                <label className="sr-only">חיפוש</label>
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="חיפוש לפי שם / כתובת / טלפון"
+                  aria-label="חיפוש אנשי קשר"
+                />
+              </div>
+              <div className="field" style={{ minWidth: 200 }}>
+                <label className="sr-only">סינון מיקום</label>
+                <select
+                  value={locationFilter}
+                  onChange={(e) =>
+                    setLocationFilter(e.target.value as typeof locationFilter)
+                  }
+                  aria-label="סינון מיקום"
+                >
+                  <option value="all">כל אנשי הקשר</option>
+                  <option value="withCoords">עם מיקום</option>
+                  <option value="withoutCoords">ללא מיקום</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="list">
+              {filtered.map((c) => (
               <Link key={c.id} to={`/shlichut/contacts/${c.id}`} className="list-item">
                 <div className="stack-sm">
                   {c.imageDataUrl ? (
                     <img
+                      className="contact-avatar"
                       src={c.imageDataUrl}
                       alt={c.name}
-                      style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: 999,
-                        objectFit: 'cover',
-                        border: '1px solid rgba(31,42,36,0.12)',
-                      }}
                     />
                   ) : null}
                   <strong>{c.name}</strong>
@@ -120,8 +164,9 @@ export function ContactsPage() {
                   כרטיס
                 </span>
               </Link>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
       </section>
     </div>

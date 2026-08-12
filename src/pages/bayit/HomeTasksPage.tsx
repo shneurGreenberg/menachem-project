@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, History, List, Plus, RotateCcw, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { DateField } from '../../components/DateField'
 import { PriorityBadge, StatusBadge } from '../../components/Badges'
@@ -18,6 +18,8 @@ export function HomeTasksPage() {
   const [dueDate, setDueDate] = useState('')
   const [priority, setPriority] = useState<Priority>('medium')
   const [filter, setFilter] = useState<'open' | 'done' | 'all'>('open')
+  const [search, setSearch] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState<'all' | Priority>('all')
 
   async function add(e: React.FormEvent) {
     e.preventDefault()
@@ -49,10 +51,17 @@ export function HomeTasksPage() {
     await db.homeTasks.delete(id)
   }
 
-  const filtered = (tasks ?? []).filter((t) => {
-    if (filter === 'all') return true
-    return t.status === filter
-  })
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return (tasks ?? []).filter((t) => {
+      if (filter !== 'all' && t.status !== filter) return false
+      if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false
+
+      if (!q) return true
+      const hay = `${t.title} ${t.description ?? ''}`.toLowerCase()
+      return hay.includes(q)
+    })
+  }, [tasks, filter, priorityFilter, search])
 
   return (
     <div className="grid" style={{ gap: '1.25rem' }}>
@@ -93,7 +102,7 @@ export function HomeTasksPage() {
 
       <section className="panel">
         <div className="actions" style={{ marginBottom: '0.75rem' }}>
-          <h2 style={{ margin: 0, flex: 1 }}>משימות</h2>
+          <h2 style={{ margin: 0, flex: 1 }}>משימות ({filtered.length})</h2>
           {(['open', 'done', 'all'] as const).map((f) => (
             <button
               key={f}
@@ -108,6 +117,30 @@ export function HomeTasksPage() {
               {f === 'open' ? 'לעשות' : f === 'done' ? 'היסטוריה' : 'הכל'}
             </button>
           ))}
+        </div>
+        <div className="actions" style={{ marginBottom: '0.75rem' }}>
+          <div className="field" style={{ flex: 1, minWidth: 220 }}>
+            <label className="sr-only">חיפוש</label>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="חיפוש לפי כותרת / תיאור"
+              aria-label="חיפוש משימות"
+            />
+          </div>
+          <div className="field" style={{ minWidth: 220 }}>
+            <label className="sr-only">סינון עדיפות</label>
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value as typeof priorityFilter)}
+              aria-label="סינון לפי עדיפות"
+            >
+              <option value="all">כל העדיפויות</option>
+              <option value="high">גבוהה</option>
+              <option value="medium">בינונית</option>
+              <option value="low">נמוכה</option>
+            </select>
+          </div>
         </div>
         {!filtered.length ? (
           <div className="empty">אין משימות.</div>

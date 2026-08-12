@@ -616,6 +616,29 @@ table.data th {
   align-items: center;
 }
 
+.contact-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid rgba(31, 42, 36, 0.12);
+}
+
+.contact-avatar-placeholder {
+  background: var(--bg-elevated);
+  border: 1px solid rgba(31, 42, 36, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--ink-muted);
+}
+
+.contact-tooltip-link {
+  margin-top: 0.25rem;
+  align-self: flex-start;
+}
+
 .contact-tooltip-img {
   width: 44px;
   height: 44px;

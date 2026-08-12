@@ -1,13 +1,16 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ClipboardList } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { DateField } from '../../components/DateField'
 import { db } from '../../db'
 import { formatDate, formatMoney, monthKey, nowISO, todayISO } from '../../utils/dates'
 
 export function StatsPage() {
-  const activities = useLiveQuery(() => db.activities.toArray(), [])
+  const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [contactFilter, setContactFilter] = useState<string>('all') // includes "none"
+  const [monthFilter, setMonthFilter] = useState<string>('all') // YYYY-MM
+
   const types = useLiveQuery(() => db.activityTypes.toArray(), [])
   const contacts = useLiveQuery(() => db.contacts.toArray(), [])
 
@@ -24,6 +27,63 @@ export function StatsPage() {
   const typeName = (id: number) => types?.find((t) => t.id === id)?.name ?? '?'
   const contactName = (id?: number) =>
     id ? (contacts?.find((c) => c.id === id)?.name ?? '?') : '—'
+
+  const monthOptions = useMemo(() => {
+    const opts: string[] = []
+    const now = new Date()
+    for (let i = 0; i < 18; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      opts.push(`${y}-${m}`)
+    }
+    return opts
+  }, [])
+
+  const activities = useLiveQuery(() => {
+    // Keep the query indexed using the best available filter first.
+    const resolvedMonth = monthFilter !== 'all' ? monthFilter : null
+    const resolvedType = typeFilter !== 'all' ? Number(typeFilter) : null
+    const resolvedContact =
+      contactFilter === 'all'
+        ? null
+        : contactFilter === 'none'
+          ? null
+          : Number(contactFilter)
+
+    const wantsNoContact = contactFilter === 'none'
+
+    let coll: any = db.activities
+
+    if (resolvedMonth) {
+      const [yS, mS] = resolvedMonth.split('-')
+      const y = Number(yS)
+      const m = Number(mS)
+      const start = `${y}-${String(m).padStart(2, '0')}-01`
+      const endExclDate = new Date(y, m, 1) // next month
+      const endExcl = endExclDate.toISOString().slice(0, 10)
+      coll = coll.where('date').between(start, endExcl, true, false)
+    } else if (resolvedType != null) {
+      coll = coll.where('activityTypeId').equals(resolvedType)
+    } else if (resolvedContact != null) {
+      coll = coll.where('contactId').equals(resolvedContact)
+    }
+
+    if (resolvedType != null) {
+      coll = coll.filter((a: any) => a.activityTypeId === resolvedType)
+    }
+    if (wantsNoContact) {
+      coll = coll.filter((a: any) => a.contactId == null)
+    } else if (resolvedContact != null) {
+      coll = coll.filter((a: any) => a.contactId === resolvedContact)
+    }
+
+    if (resolvedMonth && typeFilter === 'all' && contactFilter === 'all') {
+      // nothing else to filter; avoids extra .filter overhead
+    }
+
+    return coll.toArray()
+  }, [typeFilter, contactFilter, monthFilter])
 
   const byType = new Map<number, number>()
   const byMonth = new Map<string, number>()
@@ -75,6 +135,58 @@ export function StatsPage() {
 
   return (
     <div className="grid" style={{ gap: '1.25rem' }}>
+      <section className="panel">
+        <h2 style={{ marginBottom: '0.75rem' }}>סינון</h2>
+        <div className="actions" style={{ marginBottom: '0.75rem' }}>
+          <div className="field" style={{ minWidth: 220, flex: 1 }}>
+            <label className="sr-only">סינון לפי סוג</label>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              aria-label="סינון לפי סוג פעילות"
+            >
+              <option value="all">כל הסוגים</option>
+              {(types ?? []).map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field" style={{ minWidth: 220, flex: 1 }}>
+            <label className="sr-only">סינון לפי איש קשר</label>
+            <select
+              value={contactFilter}
+              onChange={(e) => setContactFilter(e.target.value)}
+              aria-label="סינון לפי איש קשר"
+            >
+              <option value="all">כל אנשי הקשר</option>
+              <option value="none">ללא איש קשר</option>
+              {(contacts ?? []).map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field" style={{ minWidth: 220, flex: 1 }}>
+            <label className="sr-only">סינון לפי חודש ושנה</label>
+            <select
+              value={monthFilter}
+              onChange={(e) => setMonthFilter(e.target.value)}
+              aria-label="סינון לפי חודש ושנה"
+            >
+              <option value="all">כל התקופות</option>
+              {monthOptions.map((mk) => (
+                <option key={mk} value={mk}>
+                  {mk.replace('-', '/')}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </section>
+
       <section className="panel">
         <h2>רישום פעילות</h2>
         <form className="form" onSubmit={addActivity}>

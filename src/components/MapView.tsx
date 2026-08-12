@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import {
   MapContainer,
   Marker,
@@ -12,6 +12,8 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import 'leaflet/dist/leaflet.css'
+import { Link } from 'react-router-dom'
+import MarkerClusterGroup from 'react-leaflet-markercluster'
 
 // Fix default marker icons under Vite
 const DefaultIcon = L.icon({
@@ -25,6 +27,17 @@ const DefaultIcon = L.icon({
 })
 L.Marker.prototype.options.icon = DefaultIcon
 
+// Slightly larger marker to visually highlight hover.
+const HoverIcon = L.icon({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
+  iconSize: [30, 50],
+  iconAnchor: [15, 50],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+})
+
 interface MapPickerProps {
   lat?: number
   lng?: number
@@ -37,10 +50,13 @@ interface MapPickerProps {
     imageDataUrl?: string
     address?: string
     phone?: string
+    href?: string
   }[]
   heightClass?: string
   draggable?: boolean
   autoFitMarkers?: boolean
+  enableClustering?: boolean
+  clusteringThreshold?: number
 }
 
 function AutoFitMarkers({ markers }: { markers: MapPickerProps['markers'] }) {
@@ -83,9 +99,17 @@ export function MapView({
   heightClass = '',
   draggable = false,
   autoFitMarkers = true,
+  enableClustering = true,
+  clusteringThreshold = 30,
 }: MapPickerProps) {
   const center: [number, number] = [lat, lng]
   const showSingle = markers.length === 0 && lat != null && lng != null
+  const [hoveredMarkerId, setHoveredMarkerId] = useState<number | string | null>(
+    null,
+  )
+
+  const shouldCluster =
+    enableClustering && markers.length >= clusteringThreshold && !onChange
 
   return (
     <div className={`map-wrap ${heightClass}`}>
@@ -120,42 +144,119 @@ export function MapView({
             }
           />
         )}
-        {markers.map((m) => (
-          <Marker key={m.id} position={[m.lat, m.lng]}>
-            <Tooltip
-              direction="top"
-              offset={[0, -6]}
-              opacity={0.98}
-              sticky={true}
-              className="contact-tooltip"
-            >
-              <div className="contact-tooltip-card">
-                <div className="contact-tooltip-row">
-                  {m.imageDataUrl ? (
-                    <img
-                      className="contact-tooltip-img"
-                      src={m.imageDataUrl}
-                      alt={m.label}
-                    />
-                  ) : (
-                    <div className="contact-tooltip-avatar-placeholder">
-                      {m.label.slice(0, 1)}
+        {shouldCluster ? (
+          <MarkerClusterGroup chunkedLoading>
+            {markers.map((m) => (
+              <Marker
+                key={m.id}
+                position={[m.lat, m.lng]}
+                icon={hoveredMarkerId === m.id ? HoverIcon : DefaultIcon}
+                eventHandlers={{
+                  mouseover: () => setHoveredMarkerId(m.id),
+                  mouseout: () => setHoveredMarkerId(null),
+                }}
+              >
+                <Tooltip
+                  direction="top"
+                  offset={[0, -6]}
+                  opacity={0.98}
+                  sticky={true}
+                  className="contact-tooltip"
+                >
+                  <div className="contact-tooltip-card">
+                    <div className="contact-tooltip-row">
+                      {m.imageDataUrl ? (
+                        <img
+                          className="contact-avatar"
+                          src={m.imageDataUrl}
+                          alt={m.label}
+                        />
+                      ) : (
+                        <div className="contact-avatar contact-avatar-placeholder">
+                          {m.label.slice(0, 1)}
+                        </div>
+                      )}
+                      <div className="contact-tooltip-text">
+                        <div className="contact-tooltip-name">{m.label}</div>
+                        {m.address ? (
+                          <div className="contact-tooltip-line">{m.address}</div>
+                        ) : null}
+                        {m.phone ? (
+                          <div className="contact-tooltip-line">{m.phone}</div>
+                        ) : null}
+                        {m.href ? (
+                          <Link
+                            to={m.href}
+                            className="btn small ghost contact-tooltip-link"
+                            aria-label={`לכרטיס של ${m.label}`}
+                          >
+                            כרטיס
+                          </Link>
+                        ) : null}
+                      </div>
                     </div>
-                  )}
-                  <div className="contact-tooltip-text">
-                    <div className="contact-tooltip-name">{m.label}</div>
-                    {m.address ? (
-                      <div className="contact-tooltip-line">{m.address}</div>
-                    ) : null}
-                    {m.phone ? (
-                      <div className="contact-tooltip-line">{m.phone}</div>
-                    ) : null}
                   </div>
-                </div>
-              </div>
-            </Tooltip>
-          </Marker>
-        ))}
+                </Tooltip>
+              </Marker>
+            ))}
+          </MarkerClusterGroup>
+        ) : (
+          <Fragment>
+            {markers.map((m) => (
+              <Marker
+                key={m.id}
+                position={[m.lat, m.lng]}
+                icon={hoveredMarkerId === m.id ? HoverIcon : DefaultIcon}
+                eventHandlers={{
+                  mouseover: () => setHoveredMarkerId(m.id),
+                  mouseout: () => setHoveredMarkerId(null),
+                }}
+              >
+                <Tooltip
+                  direction="top"
+                  offset={[0, -6]}
+                  opacity={0.98}
+                  sticky={true}
+                  className="contact-tooltip"
+                >
+                  <div className="contact-tooltip-card">
+                    <div className="contact-tooltip-row">
+                      {m.imageDataUrl ? (
+                        <img
+                          className="contact-avatar"
+                          src={m.imageDataUrl}
+                          alt={m.label}
+                        />
+                      ) : (
+                        <div className="contact-avatar contact-avatar-placeholder">
+                          {m.label.slice(0, 1)}
+                        </div>
+                      )}
+                      <div className="contact-tooltip-text">
+                        <div className="contact-tooltip-name">{m.label}</div>
+                        {m.address ? (
+                          <div className="contact-tooltip-line">{m.address}</div>
+                        ) : null}
+                        {m.phone ? (
+                          <div className="contact-tooltip-line">{m.phone}</div>
+                        ) : null}
+                        {m.href ? (
+                          <Link
+                            to={m.href}
+                            className="btn small ghost contact-tooltip-link"
+                            aria-label={`לכרטיס של ${m.label}`}
+                          >
+                            כרטיס
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </Tooltip>
+              </Marker>
+            ))}
+          </Fragment>
+        )}
       </MapContainer>
     </div>
   )

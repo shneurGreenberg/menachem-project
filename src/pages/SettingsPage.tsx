@@ -307,6 +307,7 @@ export function SettingsPage() {
         saving={saving}
         saved={saved}
         onSave={() => void saveLead()}
+        context="הגדרות"
       />
     </div>
   )

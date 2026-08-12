@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { DateField } from '../../components/DateField'
 import { db, getSetting } from '../../db'
@@ -34,6 +34,33 @@ export function HomeFinancePage() {
   }, [])
 
   const cats = form.type === 'income' ? incomeCats : expenseCats
+
+  const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState<'all' | FinanceType>('all')
+  const [categoryFilter, setCategoryFilter] = useState<string>('all')
+
+  const categories = useMemo(() => {
+    const set = new Set<string>()
+    for (const r of rows ?? []) set.add(r.category)
+    return [...set].sort((a, b) => a.localeCompare(b))
+  }, [rows])
+
+  const sortedFilteredRows = useMemo(() => {
+    const list = [...(rows ?? [])]
+    list.sort((a, b) => {
+      const dc = (b.date ?? '').localeCompare(a.date ?? '')
+      if (dc !== 0) return dc
+      return (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
+    })
+    const q = search.trim().toLowerCase()
+    return list.filter((r) => {
+      if (typeFilter !== 'all' && r.type !== typeFilter) return false
+      if (categoryFilter !== 'all' && r.category !== categoryFilter) return false
+      if (!q) return true
+      const hay = `${r.type} ${r.category} ${r.description ?? ''} ${r.amount}`.toLowerCase()
+      return hay.includes(q)
+    })
+  }, [rows, search, typeFilter, categoryFilter])
   const income = (rows ?? [])
     .filter((r) => r.type === 'income')
     .reduce((s, r) => s + r.amount, 0)
@@ -150,7 +177,47 @@ export function HomeFinancePage() {
       </section>
 
       <section className="panel">
-        <h3>יומן</h3>
+        <div className="actions" style={{ marginBottom: '0.75rem' }}>
+          <h3 style={{ margin: 0, flex: 1 }}>יומן ({sortedFilteredRows.length})</h3>
+        </div>
+        <div className="actions" style={{ marginBottom: '0.75rem' }}>
+          <div className="field" style={{ flex: 1, minWidth: 220 }}>
+            <label className="sr-only">חיפוש</label>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="חיפוש לפי קטגוריה / תיאור / סכום"
+              aria-label="חיפוש כספים"
+            />
+          </div>
+          <div className="field" style={{ minWidth: 180 }}>
+            <label className="sr-only">סינון סוג</label>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
+              aria-label="סינון לפי סוג"
+            >
+              <option value="all">הכל</option>
+              <option value="income">הכנסה</option>
+              <option value="expense">הוצאה</option>
+            </select>
+          </div>
+          <div className="field" style={{ minWidth: 220 }}>
+            <label className="sr-only">סינון קטגוריה</label>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              aria-label="סינון לפי קטגוריה"
+            >
+              <option value="all">כל הקטגוריות</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
         <div className="table-wrap">
           <table className="data">
             <thead>
@@ -164,7 +231,7 @@ export function HomeFinancePage() {
               </tr>
             </thead>
             <tbody>
-              {(rows ?? []).map((r) => (
+              {sortedFilteredRows.map((r) => (
                 <tr key={r.id}>
                   <td>{formatDate(r.date)}</td>
                   <td>{r.type === 'income' ? 'הכנסה' : 'הוצאה'}</td>
@@ -191,7 +258,7 @@ export function HomeFinancePage() {
               ))}
             </tbody>
           </table>
-          {!rows?.length && <div className="empty">אין רשומות.</div>}
+          {!sortedFilteredRows.length && <div className="empty">אין רשומות.</div>}
         </div>
       </section>
     </div>

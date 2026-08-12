@@ -320,6 +320,7 @@ export function PlanDetailPage() {
         saved={saved}
         onSave={() => void saveSummary()}
         variant="shlichut"
+        context="סיכום אחרי האירוע"
       />
     </div>
   )

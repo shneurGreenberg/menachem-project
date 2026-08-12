@@ -1,6 +1,6 @@
 import { Calendar } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { formatDate } from '../utils/dates'
+import { formatDate, todayISO } from '../utils/dates'
 import {
   currentHebrewParts,
   formatHebrewDate,
@@ -59,6 +59,8 @@ export function DateField({ label, value, onChange, required }: DateFieldProps) 
             type="button"
             className={`btn small ${mode === 'greg' ? '' : 'secondary'}`}
             onClick={() => setMode('greg')}
+            aria-pressed={mode === 'greg'}
+            aria-label="קלט לועזי"
           >
             לועזי
           </button>
@@ -66,10 +68,20 @@ export function DateField({ label, value, onChange, required }: DateFieldProps) 
             type="button"
             className={`btn small ${mode === 'hebrew' ? '' : 'secondary'}`}
             onClick={() => setMode('hebrew')}
+            aria-pressed={mode === 'hebrew'}
+            aria-label="קלט עברי"
           >
             עברי
           </button>
         </div>
+        <button
+          type="button"
+          className="btn small secondary"
+          onClick={() => onChange(todayISO())}
+          aria-label="היום"
+        >
+          היום
+        </button>
       </div>
 
       {mode === 'greg' ? (
@@ -141,16 +153,12 @@ export function DateField({ label, value, onChange, required }: DateFieldProps) 
         </div>
       )}
 
-      {value && (
-        <div className="meta date-field-hint">
-          <Icon icon={Calendar} size={ICON_SIZE_SM} />
-          {mode === 'greg' ? (
-            <span>עברי: {formatHebrewDate(value)}</span>
-          ) : (
-            <span>לועזי: {formatDate(value)}</span>
-          )}
-        </div>
-      )}
+      <div className="meta date-field-hint">
+        <Icon icon={Calendar} size={ICON_SIZE_SM} />
+        <span>
+          לועזי: {formatDate(value)} · עברי: {formatHebrewDate(value)}
+        </span>
+      </div>
     </div>
   )
 }

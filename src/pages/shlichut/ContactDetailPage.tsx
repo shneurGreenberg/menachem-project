@@ -315,6 +315,7 @@ export function ContactDetailPage() {
         saved={saved}
         onSave={() => void save()}
         variant="shlichut"
+        context={form.name || 'כרטיס איש קשר'}
       />
 
       <section className="panel">

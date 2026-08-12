@@ -194,6 +194,7 @@ export function StudentDetailPage() {
         saved={saved}
         onSave={() => void save()}
         variant="chinuch"
+        context={form.name || 'תלמיד'}
       />
 
       <section className="panel">

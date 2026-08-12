@@ -31,6 +31,7 @@ export function ContactsMapPage() {
             imageDataUrl: c.imageDataUrl,
             address: c.address,
             phone: c.phone,
+          href: `/shlichut/contacts/${c.id}`,
           }))}
         />
       </section>

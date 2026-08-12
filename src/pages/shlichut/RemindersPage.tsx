@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, History, List, Plus, RotateCcw, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { DateField } from '../../components/DateField'
@@ -11,7 +11,7 @@ import { formatDate, nowISO, todayISO } from '../../utils/dates'
 
 export function RemindersPage() {
   const reminders = useLiveQuery(
-    () => db.reminders.where('module').equals('shlichut').reverse().sortBy('createdAt'),
+    () => db.reminders.where('module').equals('shlichut').toArray(),
     [],
   )
   const contacts = useLiveQuery(() => db.contacts.orderBy('name').toArray(), [])
@@ -23,6 +23,10 @@ export function RemindersPage() {
   const [dueDate, setDueDate] = useState('')
   const [priority, setPriority] = useState<Priority>('medium')
   const [filter, setFilter] = useState<'open' | 'done' | 'all'>('open')
+  const [search, setSearch] = useState('')
+  const [contactFilter, setContactFilter] = useState<
+    'all' | 'none' | number
+  >('all')
 
   async function addReminder(e: React.FormEvent) {
     e.preventDefault()
@@ -83,13 +87,40 @@ export function RemindersPage() {
     await db.reminders.delete(id)
   }
 
-  const contactName = (cid?: number) =>
-    contacts?.find((c) => c.id === cid)?.name ?? 'ללא איש קשר'
+  const contactById = useMemo(() => {
+    const m = new Map<number, string>()
+    for (const c of contacts ?? []) {
+      if (c.id != null) m.set(c.id, c.name)
+    }
+    return m
+  }, [contacts])
 
-  const filtered = (reminders ?? []).filter((r) => {
-    if (filter === 'all') return true
-    return r.status === filter
-  })
+  const sorted = useMemo(() => {
+    const rows = [...(reminders ?? [])]
+    rows.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+    return rows
+  }, [reminders])
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return sorted.filter((r) => {
+      if (filter !== 'all' && r.status !== filter) return false
+
+      if (contactFilter !== 'all') {
+        if (contactFilter === 'none') {
+          if (r.contactId != null) return false
+        } else {
+          if (r.contactId !== contactFilter) return false
+        }
+      }
+
+      if (!q) return true
+      const cn =
+        r.contactId != null ? contactById.get(r.contactId) ?? 'ללא איש קשר' : 'ללא איש קשר'
+      const hay = `${r.title} ${r.description ?? ''} ${cn} ${r.dueDate ?? ''}`.toLowerCase()
+      return hay.includes(q)
+    })
+  }, [sorted, filter, search, contactFilter, contactById])
 
   return (
     <div className="grid" style={{ gap: '1.25rem' }}>
@@ -166,6 +197,38 @@ export function RemindersPage() {
             </button>
           ))}
         </div>
+        <div className="actions" style={{ marginBottom: '0.75rem' }}>
+          <div className="field" style={{ flex: 1, minWidth: 220 }}>
+            <label className="sr-only">חיפוש</label>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="חיפוש לפי כותרת / תיאור / איש קשר"
+              aria-label="חיפוש תזכורות"
+            />
+          </div>
+          <div className="field" style={{ minWidth: 220 }}>
+            <label className="sr-only">סינון איש קשר</label>
+            <select
+              value={contactFilter}
+              onChange={(e) => {
+                const v = e.target.value
+                if (v === 'all') setContactFilter('all')
+                else if (v === 'none') setContactFilter('none')
+                else setContactFilter(Number(v))
+              }}
+              aria-label="סינון לפי איש קשר"
+            >
+              <option value="all">כל אנשי הקשר</option>
+              <option value="none">ללא איש קשר</option>
+              {(contacts ?? []).map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
         {!filtered.length ? (
           <div className="empty">אין תזכורות להצגה.</div>
         ) : (
@@ -177,10 +240,10 @@ export function RemindersPage() {
                   <div className="meta">
                     {r.contactId ? (
                       <Link to={`/shlichut/contacts/${r.contactId}`}>
-                        {contactName(r.contactId)}
+                        {contactById.get(r.contactId) ?? 'ללא איש קשר'}
                       </Link>
                     ) : (
-                      contactName()
+                      'ללא איש קשר'
                     )}
                     {r.dueDate ? ` · ${formatDate(r.dueDate)}` : ''}
                   </div>

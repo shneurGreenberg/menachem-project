@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { BookPlus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { db } from '../../db'
 import { nowISO } from '../../utils/dates'
@@ -17,6 +17,27 @@ export function MaterialsPage() {
     notes: '',
     tags: '',
   })
+
+  const [search, setSearch] = useState('')
+  const [tagFilter, setTagFilter] = useState<string>('all')
+
+  const availableTags = useMemo(() => {
+    const set = new Set<string>()
+    for (const m of materials ?? []) {
+      for (const t of m.tags ?? []) set.add(t)
+    }
+    return [...set].sort((a, b) => a.localeCompare(b))
+  }, [materials])
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return (materials ?? []).filter((m) => {
+      if (tagFilter !== 'all' && !(m.tags ?? []).includes(tagFilter)) return false
+      if (!q) return true
+      const hay = `${m.title} ${m.content ?? ''} ${m.url ?? ''} ${m.notes ?? ''} ${(m.tags ?? []).join(' ')}`.toLowerCase()
+      return hay.includes(q)
+    })
+  }, [materials, search, tagFilter])
 
   async function add(e: React.FormEvent) {
     e.preventDefault()
@@ -93,42 +114,79 @@ export function MaterialsPage() {
       </section>
 
       <section className="panel">
-        <h2>מאגר</h2>
-        {!materials?.length ? (
+        <div className="actions" style={{ marginBottom: '0.75rem' }}>
+          <h2 style={{ margin: 0, flex: 1 }}>מאגר ({filtered.length})</h2>
+        </div>
+        {!filtered.length ? (
           <div className="empty">אין חומרים.</div>
         ) : (
-          <div className="list">
-            {materials.map((m) => (
-              <div key={m.id} className="list-item">
-                <div className="stack-sm">
-                  <strong>{m.title}</strong>
-                  {m.url && (
-                    <a href={m.url} target="_blank" rel="noreferrer" className="meta">
-                      {m.url}
-                    </a>
-                  )}
-                  {m.content && <div className="meta">{m.content.slice(0, 160)}</div>}
-                  {m.tags?.length > 0 && (
-                    <div className="actions">
-                      {m.tags.map((t) => (
-                        <span key={t} className="badge">
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  className="btn small ghost"
-                  onClick={() => remove(m.id)}
-                >
-                  <Icon icon={Trash2} size={ICON_SIZE_SM} />
-                  מחק
-                </button>
+          <>
+            <div className="actions" style={{ marginBottom: '0.75rem' }}>
+              <div className="field" style={{ flex: 1, minWidth: 220 }}>
+                <label className="sr-only">חיפוש</label>
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="חיפוש לפי כותרת / תוכן / תגיות"
+                  aria-label="חיפוש חומרים"
+                />
               </div>
-            ))}
-          </div>
+              <div className="field" style={{ minWidth: 220 }}>
+                <label className="sr-only">סינון תג</label>
+                <select
+                  value={tagFilter}
+                  onChange={(e) => setTagFilter(e.target.value)}
+                  aria-label="סינון לפי תג"
+                >
+                  <option value="all">כל התגיות</option>
+                  {availableTags.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="list">
+              {filtered.map((m) => (
+                <div key={m.id} className="list-item">
+                  <div className="stack-sm">
+                    <strong>{m.title}</strong>
+                    {m.url && (
+                      <a
+                        href={m.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="meta"
+                      >
+                        {m.url}
+                      </a>
+                    )}
+                    {m.content && (
+                      <div className="meta">{m.content.slice(0, 160)}</div>
+                    )}
+                    {m.tags?.length > 0 && (
+                      <div className="actions">
+                        {m.tags.map((t) => (
+                          <span key={t} className="badge">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn small ghost"
+                    onClick={() => remove(m.id)}
+                  >
+                    <Icon icon={Trash2} size={ICON_SIZE_SM} />
+                    מחק
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </section>
     </div>
