@@ -13,6 +13,7 @@
     "@hebcal/core": "^6.9.2",
     "dexie": "^4.4.4",
     "dexie-react-hooks": "^4.4.0",
+    "firebase": "^12.17.1",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "lucide-react": "^1.31.0",

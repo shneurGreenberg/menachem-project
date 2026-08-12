@@ -2,7 +2,7 @@ import { db } from '../db'
 
 export type ExportImagePolicy = 'auto' | 'include' | 'exclude'
 
-const TABLES = [
+export const TABLES = [
   'contacts',
   'customFieldDefs',
   'plans',

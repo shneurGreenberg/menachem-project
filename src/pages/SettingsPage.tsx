@@ -3,6 +3,7 @@ import { Download, Plus, Save, Trash2, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Icon, ICON_SIZE_SM } from '../components/icons'
 import { SaveBar } from '../components/SaveBar'
+import { SyncSettings } from '../components/SyncSettings'
 import { db, getSetting, setSetting } from '../db'
 import { useSaveFeedback } from '../hooks/useSaveFeedback'
 import type { CustomFieldDef, FieldType } from '../types'
@@ -116,7 +117,7 @@ export function SettingsPage() {
     <div>
       <div className="page-header">
         <h1>הגדרות</h1>
-        <p>גיבוי, שדות מותאמים, סוגי פעילות והתראות שנתיות.</p>
+        <p>גיבוי, סנכרון בין מכשירים, שדות מותאמים וסוגי פעילות.</p>
       </div>
 
       {msg && (
@@ -126,11 +127,13 @@ export function SettingsPage() {
       )}
 
       <div className="grid" style={{ gap: '1.25rem' }}>
+        <SyncSettings />
+
         <section className="panel">
           <h2>גיבוי ושחזור</h2>
           <p>
-            הנתונים נשמרים בדפדפן בלבד. מומלץ לייצא גיבוי JSON מדי פעם.
-            מחיקת נתוני האתר בדפדפן תמחק גם את המידע.
+            גיבוי ידני לקובץ. אחרי שהסנכרון לענן פעיל, המכשירים מתעדכנים לבד.
+            עדיין מומלץ לייצא מדי פעם.
           </p>
           <div className="actions">
             <button type="button" className="btn shlichut" onClick={doExport}>

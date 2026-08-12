@@ -8,6 +8,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { Icon, ICON_SIZE_SM } from './icons'
+import { SyncBadge } from './SyncBadge'
 
 const links: {
   to: string
@@ -30,6 +31,7 @@ export function Layout() {
         <div className="brand">
           ניהול <span>אישי</span>
         </div>
+        <SyncBadge />
         <nav className="nav-links">
           {links.map((l) => (
             <NavLink

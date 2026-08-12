@@ -66,6 +66,29 @@ export class AppDatabase extends Dexie {
       lessonMaterials: '++id, title, createdAt',
       homeTasks: '++id, status, dueDate, priority, createdAt',
     })
+    this.use({
+      stack: 'dbcore',
+      name: 'cloudSync',
+      create(down) {
+        return {
+          ...down,
+          table(tableName) {
+            const table = down.table(tableName)
+            return {
+              ...table,
+              mutate(req) {
+                return table.mutate(req).then((res) => {
+                  queueMicrotask(() => {
+                    window.dispatchEvent(new CustomEvent('menachem-data-changed'))
+                  })
+                  return res
+                })
+              },
+            }
+          },
+        }
+      },
+    })
   }
 }
 
