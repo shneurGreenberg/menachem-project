@@ -1,14 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Download, Plus, Save, Trash2, Upload } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Plus, Save, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Icon, ICON_SIZE_SM } from '../components/icons'
 import { SaveBar } from '../components/SaveBar'
 import { SyncSettings } from '../components/SyncSettings'
 import { db, getSetting, setSetting } from '../db'
 import { useSaveFeedback } from '../hooks/useSaveFeedback'
 import type { CustomFieldDef, FieldType } from '../types'
-import { downloadJson, exportAllData, importAllData } from '../utils/backup'
-import { nowISO } from '../utils/dates'
 
 export function SettingsPage() {
   const fields = useLiveQuery(
@@ -19,7 +17,6 @@ export function SettingsPage() {
   const [leadDays, setLeadDays] = useState('45')
   const [savedLeadDays, setSavedLeadDays] = useState('45')
   const [msg, setMsg] = useState('')
-  const fileRef = useRef<HTMLInputElement>(null)
   const { saving, saved, runSave } = useSaveFeedback()
 
   const leadDirty = leadDays !== savedLeadDays
@@ -94,30 +91,11 @@ export function SettingsPage() {
     await db.activityTypes.delete(id)
   }
 
-  async function doExport() {
-    const json = await exportAllData()
-    downloadJson(`menachem-backup-${nowISO().slice(0, 10)}.json`, json)
-    setMsg('הגיבוי הורד בהצלחה.')
-  }
-
-  async function doImport(file: File) {
-    const text = await file.text()
-    if (
-      !confirm(
-        'ייבוא יחליף את כל הנתונים הנוכחיים. להמשיך?',
-      )
-    ) {
-      return
-    }
-    await importAllData(text)
-    setMsg('הנתונים שוחזרו מהגיבוי.')
-  }
-
   return (
     <div>
       <div className="page-header">
         <h1>הגדרות</h1>
-        <p>גיבוי, סנכרון בין מכשירים, שדות מותאמים וסוגי פעילות.</p>
+        <p>סנכרון, שדות מותאמים וסוגי פעילות.</p>
       </div>
 
       {msg && (
@@ -128,39 +106,6 @@ export function SettingsPage() {
 
       <div className="grid" style={{ gap: '1.25rem' }}>
         <SyncSettings />
-
-        <section className="panel">
-          <h2>גיבוי ושחזור</h2>
-          <p>
-            גיבוי ידני לקובץ. אחרי שהסנכרון לענן פעיל, המכשירים מתעדכנים לבד.
-            עדיין מומלץ לייצא מדי פעם.
-          </p>
-          <div className="actions">
-            <button type="button" className="btn shlichut" onClick={doExport}>
-              <Icon icon={Download} size={ICON_SIZE_SM} />
-              ייצוא גיבוי JSON
-            </button>
-            <button
-              type="button"
-              className="btn secondary"
-              onClick={() => fileRef.current?.click()}
-            >
-              <Icon icon={Upload} size={ICON_SIZE_SM} />
-              ייבוא מגיבוי
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/json,.json"
-              hidden
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) void doImport(f)
-                e.target.value = ''
-              }}
-            />
-          </div>
-        </section>
 
         <section className="panel">
           <h2>התראות שנתיות לתוכניות</h2>

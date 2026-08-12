@@ -133,27 +133,21 @@ p {
   border-color: transparent;
 }
 
-.sync-steps {
-  margin: 0;
-  padding-inline-start: 1.2rem;
-  color: var(--ink-muted);
-  font-size: 0.92rem;
+.sync-qr-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.75rem 0 1rem;
 }
 
-.sync-steps li {
-  margin-bottom: 0.4rem;
-}
-
-.sync-rules {
-  direction: ltr;
-  text-align: left;
-  background: #1f2a24;
-  color: #f3efe6;
-  padding: 0.85rem 1rem;
-  border-radius: 10px;
-  overflow-x: auto;
-  font-size: 0.78rem;
-  line-height: 1.45;
+.sync-qr {
+  width: 200px;
+  height: 200px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 0.5rem;
 }
 
 .nav-links {
