@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import {
   MapContainer,
   Marker,
-  Popup,
+  Tooltip,
   TileLayer,
   useMap,
   useMapEvents,
@@ -35,6 +35,8 @@ interface MapPickerProps {
     lng: number
     label: string
     imageDataUrl?: string
+    address?: string
+    phone?: string
   }[]
   heightClass?: string
   draggable?: boolean
@@ -120,24 +122,38 @@ export function MapView({
         )}
         {markers.map((m) => (
           <Marker key={m.id} position={[m.lat, m.lng]}>
-            <Popup>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                {m.imageDataUrl ? (
-                  <img
-                    src={m.imageDataUrl}
-                    alt={m.label}
-                    style={{
-                      width: 42,
-                      height: 42,
-                      objectFit: 'cover',
-                      borderRadius: 10,
-                      border: '1px solid rgba(31,42,36,0.12)',
-                    }}
-                  />
-                ) : null}
-                <span style={{ fontWeight: 700 }}>{m.label}</span>
+            <Tooltip
+              direction="top"
+              offset={[0, -6]}
+              opacity={0.98}
+              sticky={true}
+              className="contact-tooltip"
+            >
+              <div className="contact-tooltip-card">
+                <div className="contact-tooltip-row">
+                  {m.imageDataUrl ? (
+                    <img
+                      className="contact-tooltip-img"
+                      src={m.imageDataUrl}
+                      alt={m.label}
+                    />
+                  ) : (
+                    <div className="contact-tooltip-avatar-placeholder">
+                      {m.label.slice(0, 1)}
+                    </div>
+                  )}
+                  <div className="contact-tooltip-text">
+                    <div className="contact-tooltip-name">{m.label}</div>
+                    {m.address ? (
+                      <div className="contact-tooltip-line">{m.address}</div>
+                    ) : null}
+                    {m.phone ? (
+                      <div className="contact-tooltip-line">{m.phone}</div>
+                    ) : null}
+                  </div>
+                </div>
               </div>
-            </Popup>
+            </Tooltip>
           </Marker>
         ))}
       </MapContainer>

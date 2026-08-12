@@ -594,6 +594,72 @@ table.data th {
   color: var(--ok);
 }
 
+/* Leaflet tooltip: small contact card on hover */
+.contact-tooltip {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.contact-tooltip-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.55rem 0.65rem;
+  box-shadow: var(--shadow);
+  max-width: 240px;
+}
+
+.contact-tooltip-row {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.contact-tooltip-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid rgba(31,42,36,0.12);
+}
+
+.contact-tooltip-avatar-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(31,42,36,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--ink-muted);
+}
+
+.contact-tooltip-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.contact-tooltip-name {
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contact-tooltip-line {
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 @media (max-width: 700px) {
   .top-nav {
     flex-wrap: wrap;

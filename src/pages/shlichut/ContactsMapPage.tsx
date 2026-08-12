@@ -29,6 +29,8 @@ export function ContactsMapPage() {
             lng: c.lng!,
             label: c.name,
             imageDataUrl: c.imageDataUrl,
+            address: c.address,
+            phone: c.phone,
           }))}
         />
       </section>
