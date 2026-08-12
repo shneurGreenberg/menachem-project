@@ -1,5 +1,4 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app'
-import { getAuth, signInAnonymously, type Auth } from 'firebase/auth'
 import {
   doc,
   getDoc,
@@ -18,7 +17,6 @@ import {
 import { LAST_HASH_KEY, LAST_SYNC_KEY, type SyncStatus } from './types'
 
 let app: FirebaseApp | null = null
-let auth: Auth | null = null
 let db: Firestore | null = null
 let spaceId: string | null = null
 let unsub: (() => void) | null = null
@@ -71,11 +69,7 @@ async function ensureFirebase() {
   } else {
     app = getApps()[0]!
   }
-  auth = getAuth(app)
   db = getFirestore(app)
-  if (!auth.currentUser) {
-    await signInAnonymously(auth)
-  }
   spaceId = await spaceIdFromCode(code)
   return { db, spaceId }
 }
@@ -210,10 +204,8 @@ export async function syncNow() {
   } catch (err) {
     const raw = err instanceof Error ? err.message : 'שגיאה בסנכרון'
     let message = raw
-    if (raw.includes('auth/') || raw.includes('operation-not-allowed') || raw.includes('admin-restricted')) {
-      message = 'יש להפעיל Anonymous ב-Authentication (Sign-in method)'
-    } else if (raw.includes('permission-denied')) {
-      message = 'Firestore Rules חוסמים כתיבה — פרסמו את firestore.rules'
+    if (raw.includes('permission-denied')) {
+      message = 'Firestore Rules חוסמים כתיבה — פרסמו את הכללים החדשים בלשונית Rules'
     }
     setStatus({ state: 'error', message, lastSyncedAt: status.lastSyncedAt })
     throw err
@@ -281,10 +273,8 @@ export async function startAutoSync() {
   } catch (err) {
     const raw = err instanceof Error ? err.message : String(err)
     let message = raw
-    if (raw.includes('auth/') || raw.includes('operation-not-allowed') || raw.includes('admin-restricted')) {
-      message = 'יש להפעיל Anonymous ב-Authentication (Sign-in method)'
-    } else if (raw.includes('permission-denied')) {
-      message = 'Firestore Rules חוסמים כתיבה — פרסמו את firestore.rules'
+    if (raw.includes('permission-denied')) {
+      message = 'Firestore Rules חוסמים כתיבה — פרסמו את הכללים החדשים בלשונית Rules'
     }
     setStatus({
       state: 'error',

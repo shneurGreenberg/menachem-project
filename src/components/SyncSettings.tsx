@@ -47,7 +47,7 @@ export function SyncSettings() {
         <Icon icon={Cloud} size={20} /> סנכרון בין מכשירים
       </h2>
       <p>
-        חיבור Firebase כבר מוגדר באתר. נשארו שני דברים בקונסול, ואז לחיצה אחת כאן.
+        חיבור Firebase כבר מוגדר. נשאר רק לפרסם כללי Firestore, ואז ללחוץ כאן על הפעלת סנכרון.
       </p>
       <p className="meta" style={{ marginBottom: '0.75rem' }}>
         מצב: {status.message}
@@ -56,12 +56,15 @@ export function SyncSettings() {
 
       <ol className="sync-steps">
         <li>
-          בקונסול: קטגוריה <strong>Security</strong> → <strong>Authentication</strong> →
-          Sign-in method → הפעל <strong>Anonymous</strong> → Save.
-        </li>
-        <li>
-          <strong>Firestore</strong> → לשונית <strong>Rules</strong> → הדבק את הכללים למטה →
-          <strong>Publish</strong>.
+          פתח{' '}
+          <a
+            href="https://console.firebase.google.com/project/menachem-project/firestore/rules"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Firestore Rules
+          </a>
+          , הדבק את הכללים למטה, לחץ <strong>Publish</strong>.
         </li>
       </ol>
 
@@ -69,8 +72,7 @@ export function SyncSettings() {
 service cloud.firestore {
   match /databases/{database}/documents {
     match /spaces/{spaceId}/{document=**} {
-      allow read, write: if request.auth != null
-        && spaceId.matches('^[a-f0-9]{64}$');
+      allow read, write: if spaceId.matches('^[a-f0-9]{64}$');
     }
   }
 }`}</pre>
