@@ -3,6 +3,7 @@ import { CalendarPlus, FolderOpen } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
+import { DateField } from '../../components/DateField'
 import { db } from '../../db'
 import { formatDate, formatMoney, nowISO, todayISO } from '../../utils/dates'
 
@@ -47,15 +48,12 @@ export function PlansPage() {
                 placeholder="למשל: ראש השנה בשכונה"
               />
             </div>
-            <div className="field">
-              <label>תאריך יעד</label>
-              <input
-                type="date"
-                required
-                value={targetDate}
-                onChange={(e) => setTargetDate(e.target.value)}
-              />
-            </div>
+            <DateField
+              label="תאריך יעד"
+              value={targetDate}
+              onChange={setTargetDate}
+              required
+            />
             <div className="field">
               <label>תקציב (₪)</label>
               <input

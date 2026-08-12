@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, History, List, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
+import { DateField } from '../../components/DateField'
 import { PriorityBadge, StatusBadge } from '../../components/Badges'
 import { db } from '../../db'
 import type { Priority } from '../../types'
@@ -63,14 +64,7 @@ export function HomeTasksPage() {
               <label>כותרת</label>
               <input required value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
-            <div className="field">
-              <label>תאריך יעד</label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-            </div>
+            <DateField label="תאריך יעד" value={dueDate} onChange={setDueDate} />
             <div className="field">
               <label>עדיפות</label>
               <select

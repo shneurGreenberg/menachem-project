@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
+import { DateField } from '../../components/DateField'
 import { db, getSetting } from '../../db'
 import type { FinanceType } from '../../types'
 import { formatDate, formatMoney, nowISO, parseCategories, todayISO } from '../../utils/dates'
@@ -125,14 +126,12 @@ export function HomeFinancePage() {
                 ))}
               </select>
             </div>
-            <div className="field">
-              <label>תאריך</label>
-              <input
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm((s) => ({ ...s, date: e.target.value }))}
-              />
-            </div>
+            <DateField
+              label="תאריך"
+              value={form.date}
+              onChange={(date) => setForm((s) => ({ ...s, date }))}
+              required
+            />
           </div>
           <div className="field">
             <label>תיאור</label>

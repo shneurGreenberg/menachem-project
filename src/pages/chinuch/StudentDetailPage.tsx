@@ -3,6 +3,7 @@ import { ArrowRight, Plus, Save, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
+import { DateField } from '../../components/DateField'
 import { SaveBar } from '../../components/SaveBar'
 import { db } from '../../db'
 import { useSaveFeedback } from '../../hooks/useSaveFeedback'
@@ -230,16 +231,12 @@ export function StudentDetailPage() {
                 }
               />
             </div>
-            <div className="field">
-              <label>תאריך</label>
-              <input
-                type="date"
-                value={gradeForm.date}
-                onChange={(e) =>
-                  setGradeForm((s) => ({ ...s, date: e.target.value }))
-                }
-              />
-            </div>
+          <DateField
+            label="תאריך"
+            value={gradeForm.date}
+            onChange={(date) => setGradeForm((s) => ({ ...s, date }))}
+            required
+          />
           </div>
           <button type="submit" className="btn secondary small">
             <Icon icon={Plus} size={ICON_SIZE_SM} />

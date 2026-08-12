@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { ClipboardList } from 'lucide-react'
 import { useState } from 'react'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
+import { DateField } from '../../components/DateField'
 import { db } from '../../db'
 import { formatDate, formatMoney, monthKey, nowISO, todayISO } from '../../utils/dates'
 
@@ -111,14 +112,7 @@ export function StatsPage() {
                 ))}
               </select>
             </div>
-            <div className="field">
-              <label>תאריך</label>
-              <input
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm((s) => ({ ...s, date: e.target.value }))}
-              />
-            </div>
+            <DateField label="תאריך" value={form.date} onChange={(date) => setForm((s) => ({ ...s, date }))} required />
             <div className="field">
               <label>משתתפים</label>
               <input

@@ -3,6 +3,7 @@ import { Check, History, List, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
+import { DateField } from '../../components/DateField'
 import { PriorityBadge, StatusBadge } from '../../components/Badges'
 import { db } from '../../db'
 import type { Priority } from '../../types'
@@ -116,14 +117,11 @@ export function RemindersPage() {
                 ))}
               </select>
             </div>
-            <div className="field">
-              <label>תאריך יעד (אופציונלי)</label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-            </div>
+            <DateField
+              label="תאריך יעד (אופציונלי)"
+              value={dueDate}
+              onChange={setDueDate}
+            />
             <div className="field">
               <label>עדיפות</label>
               <select
