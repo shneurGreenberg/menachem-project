@@ -144,6 +144,18 @@ p {
   margin-bottom: 0.4rem;
 }
 
+.sync-rules {
+  direction: ltr;
+  text-align: left;
+  background: #1f2a24;
+  color: #f3efe6;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
 .nav-links {
   display: flex;
   gap: 0.35rem;

@@ -2,10 +2,7 @@ import { Cloud, Copy, RefreshCw, Save } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import {
   buildPersonalSyncUrl,
-  getStoredFirebaseConfig,
   getStoredSyncCode,
-  parseFirebaseConfig,
-  saveFirebaseConfig,
   saveSyncCode,
 } from '../firebase/configStore'
 import { getSyncStatus, startAutoSync, subscribeSyncStatus, syncNow } from '../firebase/sync'
@@ -13,10 +10,6 @@ import { SUGGESTED_SYNC_CODE, type SyncStatus } from '../firebase/types'
 import { Icon, ICON_SIZE_SM } from './icons'
 
 export function SyncSettings() {
-  const stored = getStoredFirebaseConfig()
-  const [configText, setConfigText] = useState(
-    stored ? JSON.stringify(stored, null, 2) : '',
-  )
   const [code, setCode] = useState(getStoredSyncCode() ?? SUGGESTED_SYNC_CODE)
   const [status, setStatus] = useState<SyncStatus>(getSyncStatus())
   const [msg, setMsg] = useState('')
@@ -25,17 +18,15 @@ export function SyncSettings() {
   useEffect(() => subscribeSyncStatus(setStatus), [])
   useEffect(() => {
     setLink(buildPersonalSyncUrl())
-  }, [configText, code, status.state])
+  }, [code, status.state])
 
   async function saveAndConnect() {
     try {
-      const cfg = parseFirebaseConfig(configText)
-      saveFirebaseConfig(cfg)
       saveSyncCode(code.trim() || SUGGESTED_SYNC_CODE)
-      setMsg('נשמר. מתחבר לענן…')
+      setMsg('מתחבר לענן…')
       await startAutoSync()
       setLink(buildPersonalSyncUrl())
-      setMsg('הסנכרון פעיל. שמור את הקישור האישי בטלפון.')
+      setMsg('הסנכרון פעיל. פתח את הקישור האישי בטלפון.')
     } catch (err) {
       setMsg(err instanceof Error ? err.message : 'שגיאה בשמירת הסנכרון')
     }
@@ -56,8 +47,7 @@ export function SyncSettings() {
         <Icon icon={Cloud} size={20} /> סנכרון בין מכשירים
       </h2>
       <p>
-        בלי התחברות לחשבון. הקוד הסודי והקישור האישי הם ההרשאה.
-        במכשיר חדש פותחים את <strong>אותו קישור</strong> — והנתונים מגיעים מהענן.
+        חיבור Firebase כבר מוגדר באתר. נשארו שני דברים בקונסול, ואז לחיצה אחת כאן.
       </p>
       <p className="meta" style={{ marginBottom: '0.75rem' }}>
         מצב: {status.message}
@@ -66,30 +56,26 @@ export function SyncSettings() {
 
       <ol className="sync-steps">
         <li>
-          ב-Firebase: גלגל השיניים ליד שם הפרויקט → <strong>Project settings</strong> →
-          גלול ל-<strong>Your apps</strong> → אם אין אפליקציית Web, לחץ על אייקון {'</>'} והוסף.
+          בקונסול: קטגוריה <strong>Security</strong> → <strong>Authentication</strong> →
+          Sign-in method → הפעל <strong>Anonymous</strong> → Save.
         </li>
         <li>
-          העתק את האובייקט <code>firebaseConfig</code> והדבק למטה.
-        </li>
-        <li>
-          Authentication → Sign-in method → הפעל <strong>Anonymous</strong>.
-        </li>
-        <li>
-          Firestore → Rules → הדבק את הכללים מקובץ <code>firestore.rules</code> בריפו ולחץ Publish.
+          <strong>Firestore</strong> → לשונית <strong>Rules</strong> → הדבק את הכללים למטה →
+          <strong>Publish</strong>.
         </li>
       </ol>
 
+      <pre className="sync-rules" dir="ltr">{`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /spaces/{spaceId}/{document=**} {
+      allow read, write: if request.auth != null
+        && spaceId.matches('^[a-f0-9]{64}$');
+    }
+  }
+}`}</pre>
+
       <div className="form" style={{ marginTop: '1rem' }}>
-        <div className="field">
-          <label>firebaseConfig</label>
-          <textarea
-            rows={8}
-            placeholder={'const firebaseConfig = {\n  apiKey: "...",\n  ...\n};'}
-            value={configText}
-            onChange={(e) => setConfigText(e.target.value)}
-          />
-        </div>
         <div className="field">
           <label>קוד סנכרון סודי</label>
           <input
@@ -97,12 +83,11 @@ export function SyncSettings() {
             onChange={(e) => setCode(e.target.value)}
             autoComplete="off"
           />
-          <div className="meta">מומלץ להשאיר: {SUGGESTED_SYNC_CODE}</div>
         </div>
         <div className="actions">
           <button type="button" className="btn shlichut" onClick={() => void saveAndConnect()}>
             <Icon icon={Save} size={ICON_SIZE_SM} />
-            שמירה והפעלת סנכרון
+            הפעלת סנכרון
           </button>
           <button
             type="button"
@@ -115,8 +100,8 @@ export function SyncSettings() {
         </div>
         {link && (
           <div className="field">
-            <label>הקישור האישי שלך (לפתיחה בטלפון / מחשב אחר)</label>
-            <textarea readOnly rows={3} value={link} />
+            <label>קישור לטלפון / מחשב אחר</label>
+            <textarea readOnly rows={2} value={link} />
             <button type="button" className="btn secondary small" onClick={() => void copyLink()}>
               <Icon icon={Copy} size={ICON_SIZE_SM} />
               העתקת קישור
