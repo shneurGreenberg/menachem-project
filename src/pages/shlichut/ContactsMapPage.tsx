@@ -11,10 +11,6 @@ export function ContactsMapPage() {
     (c) => c.lat != null && c.lng != null && c.id != null,
   )
 
-  const center = withCoords[0]
-    ? { lat: withCoords[0].lat!, lng: withCoords[0].lng! }
-    : { lat: 32.0853, lng: 34.7818 }
-
   return (
     <div className="grid" style={{ gap: '1rem' }}>
       <section className="panel">
@@ -24,14 +20,15 @@ export function ContactsMapPage() {
         </h2>
         <p>{withCoords.length} מתוך {contacts?.length ?? 0} עם מיקום.</p>
         <MapView
-          lat={center.lat}
-          lng={center.lng}
+          // Auto-fit uses the markers' bounds; fallback center is handled inside MapView.
           heightClass="tall"
+          autoFitMarkers
           markers={withCoords.map((c) => ({
             id: c.id!,
             lat: c.lat!,
             lng: c.lng!,
             label: c.name,
+            imageDataUrl: c.imageDataUrl,
           }))}
         />
       </section>

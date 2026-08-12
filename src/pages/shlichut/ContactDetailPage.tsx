@@ -2,9 +2,11 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowRight,
   Bell,
+  ImagePlus,
   MapPin,
   Save,
   Trash2,
+  X,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -15,6 +17,7 @@ import { db } from '../../db'
 import { useSaveFeedback } from '../../hooks/useSaveFeedback'
 import { formatDate, nowISO } from '../../utils/dates'
 import { geocodeAddress } from '../../utils/geocode'
+import { fileToCompressedJpegDataUrl } from '../../utils/image'
 
 export function ContactDetailPage() {
   const { id } = useParams()
@@ -50,9 +53,12 @@ export function ContactDetailPage() {
     notes: '',
     lat: undefined as number | undefined,
     lng: undefined as number | undefined,
+    imageDataUrl: undefined as string | undefined,
     customFields: {} as Record<string, string>,
   })
   const [geoMsg, setGeoMsg] = useState('')
+  const [imgBusy, setImgBusy] = useState(false)
+  const [imgMsg, setImgMsg] = useState('')
   const [baseline, setBaseline] = useState('')
   const { saving, saved, runSave } = useSaveFeedback()
 
@@ -68,6 +74,7 @@ export function ContactDetailPage() {
       notes: contact.notes ?? '',
       lat: contact.lat,
       lng: contact.lng,
+      imageDataUrl: contact.imageDataUrl,
       customFields: { ...contact.customFields },
     }
     setForm(initial)
@@ -98,12 +105,44 @@ export function ContactDetailPage() {
         notes: form.notes.trim() || undefined,
         lat: form.lat,
         lng: form.lng,
+        imageDataUrl: form.imageDataUrl || undefined,
         customFields: form.customFields,
         updatedAt: nowISO(),
       })
       setBaseline(formSnapshot)
       setGeoMsg('נשמר.')
     })
+  }
+
+  async function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (!f) return
+
+    if (!f.type.startsWith('image/')) {
+      setImgMsg('קובץ לא נתמך. נא לבחור תמונה.')
+      return
+    }
+
+    setImgBusy(true)
+    setImgMsg('')
+    try {
+      const dataUrl = await fileToCompressedJpegDataUrl(f, {
+        maxDimension: 512,
+        quality: 0.82,
+      })
+      setForm((s) => ({ ...s, imageDataUrl: dataUrl }))
+      setImgMsg('התמונה הוכנה לשמירה.')
+    } catch {
+      setImgMsg('שגיאה בהכנת התמונה. נסה שוב.')
+    } finally {
+      setImgBusy(false)
+      e.target.value = ''
+    }
+  }
+
+  function removeImage() {
+    setForm((s) => ({ ...s, imageDataUrl: undefined }))
+    setImgMsg('התמונה הוסרה (עדיין לא נשמר).')
   }
 
   async function geocode() {
@@ -169,6 +208,55 @@ export function ContactDetailPage() {
               מיקום לפי כתובת
             </button>
             {geoMsg && <span className="muted">{geoMsg}</span>}
+          </div>
+
+          <div className="panel" style={{ padding: '0.75rem', background: 'var(--surface)' }}>
+            <div className="actions" style={{ marginBottom: '0.35rem' }}>
+              <strong>תמונה לאיש קשר</strong>
+            </div>
+
+            <div className="actions">
+              {form.imageDataUrl ? (
+                <>
+                  <img
+                    src={form.imageDataUrl}
+                    alt={form.name || 'תמונה'}
+                    style={{
+                      width: 90,
+                      height: 90,
+                      borderRadius: 14,
+                      objectFit: 'cover',
+                      border: '1px solid rgba(31,42,36,0.12)',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn small ghost"
+                    onClick={removeImage}
+                    disabled={imgBusy}
+                  >
+                    <Icon icon={X} size={ICON_SIZE_SM} />
+                    הסרה
+                  </button>
+                </>
+              ) : (
+                <span className="muted">אין תמונה עדיין.</span>
+              )}
+
+              <label className="btn secondary small" style={{ cursor: imgBusy ? 'not-allowed' : 'pointer' }}>
+                <Icon icon={ImagePlus} size={ICON_SIZE_SM} />
+                {imgBusy ? 'טוען…' : 'בחירת תמונה'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  disabled={imgBusy}
+                  onChange={onPickImage}
+                />
+              </label>
+            </div>
+
+            {imgMsg && <div className="meta">{imgMsg}</div>}
           </div>
 
           {(fieldDefs ?? []).map((f) => (

@@ -13,6 +13,11 @@ export interface Contact {
   notes?: string
   lat?: number
   lng?: number
+  /**
+   * תמונת איש קשר במחרוזת DataURL (דחוס לקובץ JPEG בצד הלקוח).
+   * נשמרת רק בדפדפן (IndexedDB).
+   */
+  imageDataUrl?: string
   customFields: Record<string, string>
   createdAt: string
   updatedAt: string

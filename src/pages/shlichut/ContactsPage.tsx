@@ -95,6 +95,19 @@ export function ContactsPage() {
             {contacts.map((c) => (
               <Link key={c.id} to={`/shlichut/contacts/${c.id}`} className="list-item">
                 <div className="stack-sm">
+                  {c.imageDataUrl ? (
+                    <img
+                      src={c.imageDataUrl}
+                      alt={c.name}
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 999,
+                        objectFit: 'cover',
+                        border: '1px solid rgba(31,42,36,0.12)',
+                      }}
+                    />
+                  ) : null}
                   <strong>{c.name}</strong>
                   <div className="meta">
                     {c.address || 'ללא כתובת'}

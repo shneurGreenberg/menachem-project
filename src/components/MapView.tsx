@@ -1,4 +1,12 @@
-import { MapContainer, Marker, Popup, TileLayer, useMapEvents } from 'react-leaflet'
+import { useEffect } from 'react'
+import {
+  MapContainer,
+  Marker,
+  Popup,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from 'react-leaflet'
 import L from 'leaflet'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
@@ -21,9 +29,35 @@ interface MapPickerProps {
   lat?: number
   lng?: number
   onChange?: (lat: number, lng: number) => void
-  markers?: { id: number | string; lat: number; lng: number; label: string }[]
+  markers?: {
+    id: number | string
+    lat: number
+    lng: number
+    label: string
+    imageDataUrl?: string
+  }[]
   heightClass?: string
   draggable?: boolean
+  autoFitMarkers?: boolean
+}
+
+function AutoFitMarkers({ markers }: { markers: MapPickerProps['markers'] }) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (!markers?.length) return
+    const latLngs = markers.map((m) => [m.lat, m.lng] as [number, number])
+    const bounds = L.latLngBounds(latLngs)
+
+    // For a single marker, just keep a reasonable zoom.
+    if (markers.length === 1) {
+      map.setView(latLngs[0], 15)
+    } else {
+      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 })
+    }
+  }, [map, markers])
+
+  return null
 }
 
 function ClickHandler({
@@ -46,6 +80,7 @@ export function MapView({
   markers = [],
   heightClass = '',
   draggable = false,
+  autoFitMarkers = true,
 }: MapPickerProps) {
   const center: [number, number] = [lat, lng]
   const showSingle = markers.length === 0 && lat != null && lng != null
@@ -63,6 +98,9 @@ export function MapView({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {onChange && <ClickHandler onChange={onChange} />}
+        {autoFitMarkers && !onChange && markers.length > 0 && (
+          <AutoFitMarkers markers={markers} />
+        )}
         {showSingle && (
           <Marker
             position={center}
@@ -82,7 +120,24 @@ export function MapView({
         )}
         {markers.map((m) => (
           <Marker key={m.id} position={[m.lat, m.lng]}>
-            <Popup>{m.label}</Popup>
+            <Popup>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                {m.imageDataUrl ? (
+                  <img
+                    src={m.imageDataUrl}
+                    alt={m.label}
+                    style={{
+                      width: 42,
+                      height: 42,
+                      objectFit: 'cover',
+                      borderRadius: 10,
+                      border: '1px solid rgba(31,42,36,0.12)',
+                    }}
+                  />
+                ) : null}
+                <span style={{ fontWeight: 700 }}>{m.label}</span>
+              </div>
+            </Popup>
           </Marker>
         ))}
       </MapContainer>
