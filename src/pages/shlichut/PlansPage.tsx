@@ -1,6 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { CalendarPlus, FolderOpen } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { db } from '../../db'
 import { formatDate, formatMoney, nowISO, todayISO } from '../../utils/dates'
 
@@ -72,6 +74,7 @@ export function PlansPage() {
             />
           </div>
           <button type="submit" className="btn shlichut">
+            <Icon icon={CalendarPlus} size={ICON_SIZE_SM} />
             יצירת תוכנית
           </button>
         </form>
@@ -93,7 +96,10 @@ export function PlansPage() {
                     {` · ${p.status === 'active' ? 'פעילה' : p.status === 'completed' ? 'הושלמה' : 'בארכיון'}`}
                   </div>
                 </div>
-                <span className="btn small secondary">פתיחה</span>
+                <span className="btn small secondary">
+                  <Icon icon={FolderOpen} size={ICON_SIZE_SM} />
+                  פתיחה
+                </span>
               </Link>
             ))}
           </div>

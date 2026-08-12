@@ -1,6 +1,15 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import {
+  Calendar,
+  ExternalLink,
+  GraduationCap,
+  HeartHandshake,
+  Home,
+} from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PriorityBadge, StatusBadge } from '../components/Badges'
+import { Icon, ICON_SIZE_LG, ICON_SIZE_SM } from '../components/icons'
 import { db, getSetting } from '../db'
 import {
   daysUntil,
@@ -8,7 +17,6 @@ import {
   nextAnniversary,
   priorityWeight,
 } from '../utils/dates'
-import { useEffect, useState } from 'react'
 
 export function Dashboard() {
   const [leadDays, setLeadDays] = useState(45)
@@ -126,6 +134,7 @@ export function Dashboard() {
                           : '/bayit/tasks'
                     }
                   >
+                    <Icon icon={ExternalLink} size={ICON_SIZE_SM} />
                     פתיחה
                   </Link>
                 </div>
@@ -143,6 +152,7 @@ export function Dashboard() {
                 <div className="actions">
                   <PriorityBadge priority={t.priority} />
                   <Link className="btn small secondary" to="/bayit/tasks">
+                    <Icon icon={ExternalLink} size={ICON_SIZE_SM} />
                     פתיחה
                   </Link>
                 </div>
@@ -181,6 +191,7 @@ export function Dashboard() {
                     )}
                   </div>
                   <Link className="btn small bayit" to={`/shlichut/plans/${plan.id}`}>
+                    <Icon icon={Calendar} size={ICON_SIZE_SM} />
                     לתוכנית
                   </Link>
                 </div>
@@ -192,15 +203,24 @@ export function Dashboard() {
 
       <section className="dashboard-section grid grid-3">
         <Link to="/shlichut" className="shortcut shlichut">
-          <h3>שליחות</h3>
+          <h3>
+            <Icon icon={HeartHandshake} size={ICON_SIZE_LG} />
+            שליחות
+          </h3>
           <p>{contacts ?? 0} אנשי קשר · תזכורות, תוכניות ומפה</p>
         </Link>
         <Link to="/chinuch" className="shortcut chinuch">
-          <h3>חינוך</h3>
+          <h3>
+            <Icon icon={GraduationCap} size={ICON_SIZE_LG} />
+            חינוך
+          </h3>
           <p>{students ?? 0} תלמידים · ציונים וחומרים</p>
         </Link>
         <Link to="/bayit" className="shortcut bayit">
-          <h3>בית</h3>
+          <h3>
+            <Icon icon={Home} size={ICON_SIZE_LG} />
+            בית
+          </h3>
           <p>{openHome.length} משימות פתוחות · כספים</p>
         </Link>
       </section>

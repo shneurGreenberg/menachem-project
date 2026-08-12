@@ -1,6 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { IdCard, Loader2, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { db } from '../../db'
 import { nowISO } from '../../utils/dates'
 import { geocodeAddress } from '../../utils/geocode'
@@ -69,7 +71,17 @@ export function ContactsPage() {
             </div>
           </div>
           <button type="submit" className="btn shlichut" disabled={busy}>
-            {busy ? 'שומר…' : 'הוספה'}
+            {busy ? (
+              <>
+                <Icon icon={Loader2} size={ICON_SIZE_SM} className="spin" />
+                שומר…
+              </>
+            ) : (
+              <>
+                <Icon icon={Plus} size={ICON_SIZE_SM} />
+                הוספה
+              </>
+            )}
           </button>
         </form>
       </section>
@@ -90,7 +102,10 @@ export function ContactsPage() {
                     {c.lat != null ? ' · על המפה' : ''}
                   </div>
                 </div>
-                <span className="btn small secondary">כרטיס</span>
+                <span className="btn small secondary">
+                  <Icon icon={IdCard} size={ICON_SIZE_SM} />
+                  כרטיס
+                </span>
               </Link>
             ))}
           </div>

@@ -1,6 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { IdCard, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { db } from '../../db'
 import { nowISO } from '../../utils/dates'
 
@@ -50,6 +52,7 @@ export function StudentsPage() {
             </div>
           </div>
           <button type="submit" className="btn chinuch">
+            <Icon icon={Plus} size={ICON_SIZE_SM} />
             הוספה
           </button>
         </form>
@@ -70,7 +73,10 @@ export function StudentsPage() {
                     {s.parentPhone ? ` · ${s.parentPhone}` : ''}
                   </div>
                 </div>
-                <span className="btn small secondary">כרטיס</span>
+                <span className="btn small secondary">
+                  <Icon icon={IdCard} size={ICON_SIZE_SM} />
+                  כרטיס
+                </span>
               </Link>
             ))}
           </div>

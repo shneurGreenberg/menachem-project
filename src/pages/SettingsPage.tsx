@@ -1,5 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { Download, Plus, Save, Trash2, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { Icon, ICON_SIZE_SM } from '../components/icons'
 import { SaveBar } from '../components/SaveBar'
 import { db, getSetting, setSetting } from '../db'
 import { useSaveFeedback } from '../hooks/useSaveFeedback'
@@ -132,6 +134,7 @@ export function SettingsPage() {
           </p>
           <div className="actions">
             <button type="button" className="btn shlichut" onClick={doExport}>
+              <Icon icon={Download} size={ICON_SIZE_SM} />
               ייצוא גיבוי JSON
             </button>
             <button
@@ -139,6 +142,7 @@ export function SettingsPage() {
               className="btn secondary"
               onClick={() => fileRef.current?.click()}
             >
+              <Icon icon={Upload} size={ICON_SIZE_SM} />
               ייבוא מגיבוי
             </button>
             <input
@@ -171,6 +175,7 @@ export function SettingsPage() {
           </div>
           <div className="actions" style={{ marginTop: '0.75rem' }}>
             <button type="button" className="btn" onClick={saveLead}>
+              <Icon icon={Save} size={ICON_SIZE_SM} />
               שמירה
             </button>
           </div>
@@ -194,6 +199,7 @@ export function SettingsPage() {
                   className="btn small ghost"
                   onClick={() => removeField(f.id)}
                 >
+                  <Icon icon={Trash2} size={ICON_SIZE_SM} />
                   מחיקה
                 </button>
               </div>
@@ -249,6 +255,7 @@ export function SettingsPage() {
               </div>
             )}
             <button type="submit" className="btn secondary">
+              <Icon icon={Plus} size={ICON_SIZE_SM} />
               הוספת שדה
             </button>
           </form>
@@ -265,6 +272,7 @@ export function SettingsPage() {
                   className="btn small ghost"
                   onClick={() => removeType(t.id)}
                 >
+                  <Icon icon={Trash2} size={ICON_SIZE_SM} />
                   מחיקה
                 </button>
               </div>
@@ -287,6 +295,7 @@ export function SettingsPage() {
               }}
             />
             <button type="submit" className="btn secondary">
+              <Icon icon={Plus} size={ICON_SIZE_SM} />
               הוספה
             </button>
           </form>

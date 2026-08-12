@@ -1,5 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { Check, ClipboardPlus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { db } from '../../db'
 import { formatDate, nowISO, todayISO } from '../../utils/dates'
 
@@ -137,6 +139,7 @@ export function TeachingPlansPage() {
             />
           </div>
           <button type="submit" className="btn chinuch">
+            <Icon icon={ClipboardPlus} size={ICON_SIZE_SM} />
             יצירה
           </button>
         </form>
@@ -168,6 +171,7 @@ export function TeachingPlansPage() {
                       className="btn small chinuch"
                       onClick={() => markDone(p.id)}
                     >
+                      <Icon icon={Check} size={ICON_SIZE_SM} />
                       בוצע
                     </button>
                   )}
@@ -176,6 +180,7 @@ export function TeachingPlansPage() {
                     className="btn small ghost"
                     onClick={() => remove(p.id)}
                   >
+                    <Icon icon={Trash2} size={ICON_SIZE_SM} />
                     מחק
                   </button>
                 </div>

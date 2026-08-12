@@ -1,5 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { ListTodo, TrendingDown, TrendingUp } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { Icon, ICON_SIZE_LG } from '../../components/icons'
 import { db } from '../../db'
 import { formatMoney } from '../../utils/dates'
 
@@ -19,15 +21,24 @@ export function BayitHome() {
   return (
     <div className="grid grid-3">
       <Link to="/bayit/tasks" className="shortcut bayit">
-        <h3>משימות בית</h3>
+        <h3>
+          <Icon icon={ListTodo} size={ICON_SIZE_LG} />
+          משימות בית
+        </h3>
         <p>{openTasks ?? 0} פתוחות</p>
       </Link>
       <Link to="/bayit/finance" className="shortcut bayit">
-        <h3>הכנסות</h3>
+        <h3>
+          <Icon icon={TrendingUp} size={ICON_SIZE_LG} />
+          הכנסות
+        </h3>
         <p>{formatMoney(income)}</p>
       </Link>
       <Link to="/bayit/finance" className="shortcut bayit">
-        <h3>הוצאות / יתרה</h3>
+        <h3>
+          <Icon icon={TrendingDown} size={ICON_SIZE_LG} />
+          הוצאות / יתרה
+        </h3>
         <p>
           {formatMoney(expense)} · יתרה {formatMoney(income - expense)}
         </p>

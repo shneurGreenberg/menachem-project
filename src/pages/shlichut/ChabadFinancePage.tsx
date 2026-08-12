@@ -1,9 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { db, getSetting } from '../../db'
 import type { FinanceType } from '../../types'
 import { formatDate, formatMoney, nowISO, parseCategories, todayISO } from '../../utils/dates'
-import { useEffect } from 'react'
 
 export function ChabadFinancePage() {
   const rows = useLiveQuery(
@@ -142,6 +143,7 @@ export function ChabadFinancePage() {
             />
           </div>
           <button type="submit" className="btn shlichut">
+            <Icon icon={Plus} size={ICON_SIZE_SM} />
             הוספה
           </button>
         </form>
@@ -177,6 +179,7 @@ export function ChabadFinancePage() {
                       className="btn small ghost"
                       onClick={() => remove(r.id)}
                     >
+                      <Icon icon={Trash2} size={ICON_SIZE_SM} />
                       מחק
                     </button>
                   </td>

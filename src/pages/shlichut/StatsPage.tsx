@@ -1,5 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { ClipboardList } from 'lucide-react'
 import { useState } from 'react'
+import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { db } from '../../db'
 import { formatDate, formatMoney, monthKey, nowISO, todayISO } from '../../utils/dates'
 
@@ -155,6 +157,7 @@ export function StatsPage() {
             />
           </div>
           <button type="submit" className="btn shlichut">
+            <Icon icon={ClipboardList} size={ICON_SIZE_SM} />
             רישום
           </button>
         </form>

@@ -1,6 +1,14 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import {
+  ArrowRight,
+  Plus,
+  Save,
+  ShoppingCart,
+  Trash2,
+} from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { SaveBar } from '../../components/SaveBar'
 import { db } from '../../db'
 import { useSaveFeedback } from '../../hooks/useSaveFeedback'
@@ -135,9 +143,11 @@ export function PlanDetailPage() {
     <div className="grid" style={{ gap: '1.25rem' }}>
       <div className="actions">
         <Link to="/shlichut/plans" className="btn secondary small">
-          ← חזרה
+          <Icon icon={ArrowRight} size={ICON_SIZE_SM} />
+          חזרה
         </Link>
         <button type="button" className="btn danger small" onClick={removePlan}>
+          <Icon icon={Trash2} size={ICON_SIZE_SM} />
           מחיקה
         </button>
       </div>
@@ -173,6 +183,7 @@ export function PlanDetailPage() {
             }}
           />
           <button type="submit" className="btn secondary small">
+            <Icon icon={Plus} size={ICON_SIZE_SM} />
             הוספה
           </button>
         </form>
@@ -222,6 +233,7 @@ export function PlanDetailPage() {
             </div>
           </div>
           <button type="submit" className="btn secondary small">
+            <Icon icon={ShoppingCart} size={ICON_SIZE_SM} />
             הוספת פריט
           </button>
         </form>
@@ -282,6 +294,7 @@ export function PlanDetailPage() {
             />
           </div>
           <button type="submit" className="btn shlichut">
+            <Icon icon={Save} size={ICON_SIZE_SM} />
             שמירת סיכום ({todayISO().slice(0, 4)})
           </button>
         </form>

@@ -1,6 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { Check, History, List, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { PriorityBadge, StatusBadge } from '../../components/Badges'
 import { db } from '../../db'
 import type { Priority } from '../../types'
@@ -142,6 +144,7 @@ export function RemindersPage() {
             />
           </div>
           <button type="submit" className="btn shlichut">
+            <Icon icon={Plus} size={ICON_SIZE_SM} />
             הוספה
           </button>
         </form>
@@ -157,6 +160,10 @@ export function RemindersPage() {
               className={`btn small ${filter === f ? '' : 'secondary'}`}
               onClick={() => setFilter(f)}
             >
+              <Icon
+                icon={f === 'open' ? List : f === 'done' ? History : List}
+                size={ICON_SIZE_SM}
+              />
               {f === 'open' ? 'פתוחות' : f === 'done' ? 'היסטוריה' : 'הכל'}
             </button>
           ))}
@@ -190,6 +197,7 @@ export function RemindersPage() {
                       className="btn small shlichut"
                       onClick={() => r.id != null && completeReminder(r.id)}
                     >
+                      <Icon icon={Check} size={ICON_SIZE_SM} />
                       בוצע
                     </button>
                   ) : (
@@ -198,6 +206,7 @@ export function RemindersPage() {
                       className="btn small secondary"
                       onClick={() => r.id != null && reopen(r.id)}
                     >
+                      <Icon icon={RotateCcw} size={ICON_SIZE_SM} />
                       פתח מחדש
                     </button>
                   )}
@@ -206,6 +215,7 @@ export function RemindersPage() {
                     className="btn small ghost"
                     onClick={() => r.id != null && remove(r.id)}
                   >
+                    <Icon icon={Trash2} size={ICON_SIZE_SM} />
                     מחק
                   </button>
                 </div>

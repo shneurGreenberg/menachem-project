@@ -1,6 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { ArrowRight, Plus, Save, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { SaveBar } from '../../components/SaveBar'
 import { db } from '../../db'
 import { useSaveFeedback } from '../../hooks/useSaveFeedback'
@@ -115,9 +117,11 @@ export function StudentDetailPage() {
     <div className="grid" style={{ gap: '1.25rem' }}>
       <div className="actions">
         <Link to="/chinuch/students" className="btn secondary small">
-          ← חזרה
+          <Icon icon={ArrowRight} size={ICON_SIZE_SM} />
+          חזרה
         </Link>
         <button type="button" className="btn danger small" onClick={remove}>
+          <Icon icon={Trash2} size={ICON_SIZE_SM} />
           מחיקה
         </button>
       </div>
@@ -177,6 +181,7 @@ export function StudentDetailPage() {
             />
           </div>
           <button type="submit" className="btn chinuch">
+            <Icon icon={Save} size={ICON_SIZE_SM} />
             שמירה
           </button>
         </form>
@@ -237,6 +242,7 @@ export function StudentDetailPage() {
             </div>
           </div>
           <button type="submit" className="btn secondary small">
+            <Icon icon={Plus} size={ICON_SIZE_SM} />
             הוספת ציון
           </button>
         </form>

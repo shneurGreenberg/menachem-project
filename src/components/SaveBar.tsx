@@ -1,3 +1,6 @@
+import { Loader2, Save } from 'lucide-react'
+import { Icon, ICON_SIZE_SM } from './icons'
+
 export type SaveBarVariant = 'shlichut' | 'chinuch' | 'bayit' | 'default'
 
 interface SaveBarProps {
@@ -28,7 +31,17 @@ export function SaveBar({
         onClick={onSave}
         disabled={saving || saved}
       >
-        {saving ? 'שומר…' : 'שמור'}
+        {saving ? (
+          <>
+            <Icon icon={Loader2} size={ICON_SIZE_SM} className="spin" />
+            שומר…
+          </>
+        ) : (
+          <>
+            <Icon icon={Save} size={ICON_SIZE_SM} />
+            שמור
+          </>
+        )}
       </button>
     </div>
   )

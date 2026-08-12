@@ -1,5 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { db, getSetting } from '../../db'
 import type { FinanceType } from '../../types'
 import { formatDate, formatMoney, nowISO, parseCategories, todayISO } from '../../utils/dates'
@@ -142,6 +144,7 @@ export function HomeFinancePage() {
             />
           </div>
           <button type="submit" className="btn bayit">
+            <Icon icon={Plus} size={ICON_SIZE_SM} />
             הוספה
           </button>
         </form>
@@ -181,6 +184,7 @@ export function HomeFinancePage() {
                       className="btn small ghost"
                       onClick={() => remove(r.id)}
                     >
+                      <Icon icon={Trash2} size={ICON_SIZE_SM} />
                       מחק
                     </button>
                   </td>

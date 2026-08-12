@@ -1,5 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { BookPlus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { db } from '../../db'
 import { nowISO } from '../../utils/dates'
 
@@ -84,6 +86,7 @@ export function MaterialsPage() {
             />
           </div>
           <button type="submit" className="btn chinuch">
+            <Icon icon={BookPlus} size={ICON_SIZE_SM} />
             הוספה
           </button>
         </form>
@@ -120,6 +123,7 @@ export function MaterialsPage() {
                   className="btn small ghost"
                   onClick={() => remove(m.id)}
                 >
+                  <Icon icon={Trash2} size={ICON_SIZE_SM} />
                   מחק
                 </button>
               </div>

@@ -1,6 +1,14 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import {
+  ArrowRight,
+  Bell,
+  MapPin,
+  Save,
+  Trash2,
+} from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { MapView } from '../../components/MapView'
 import { SaveBar } from '../../components/SaveBar'
 import { db } from '../../db'
@@ -119,9 +127,11 @@ export function ContactDetailPage() {
     <div className="grid" style={{ gap: '1.25rem' }}>
       <div className="actions">
         <Link to="/shlichut/contacts" className="btn secondary small">
-          ← חזרה לרשימה
+          <Icon icon={ArrowRight} size={ICON_SIZE_SM} />
+          חזרה לרשימה
         </Link>
         <button type="button" className="btn danger small" onClick={remove}>
+          <Icon icon={Trash2} size={ICON_SIZE_SM} />
           מחיקה
         </button>
       </div>
@@ -155,7 +165,8 @@ export function ContactDetailPage() {
           </div>
           <div className="actions">
             <button type="button" className="btn secondary small" onClick={geocode}>
-              מיקום לפי כתובת (Nominatim)
+              <Icon icon={MapPin} size={ICON_SIZE_SM} />
+              מיקום לפי כתובת
             </button>
             {geoMsg && <span className="muted">{geoMsg}</span>}
           </div>
@@ -204,6 +215,7 @@ export function ContactDetailPage() {
           </div>
 
           <button type="submit" className="btn shlichut">
+            <Icon icon={Save} size={ICON_SIZE_SM} />
             שמירת כרטיס
           </button>
         </form>
@@ -248,6 +260,7 @@ export function ContactDetailPage() {
                   </div>
                 </div>
                 <Link to="/shlichut/reminders" className="btn small secondary">
+                  <Icon icon={Bell} size={ICON_SIZE_SM} />
                   תזכורות
                 </Link>
               </div>

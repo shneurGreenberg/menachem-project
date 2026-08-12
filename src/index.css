@@ -114,6 +114,9 @@ p {
 }
 
 .nav-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   padding: 0.45rem 0.8rem;
   border-radius: 999px;
   color: var(--ink-muted);
@@ -148,6 +151,9 @@ p {
 }
 
 .page-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: clamp(1.6rem, 3vw, 2.1rem);
 }
 
@@ -163,6 +169,9 @@ p {
 }
 
 .subnav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   padding: 0.4rem 0.75rem;
   border-radius: 8px;
   font-size: 0.92rem;
@@ -416,7 +425,23 @@ p {
 }
 
 .shortcut h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   margin-bottom: 0.25rem;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .map-wrap {

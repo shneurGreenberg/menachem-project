@@ -1,5 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { MapPin, User } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { MapView } from '../../components/MapView'
 import { db } from '../../db'
 
@@ -16,7 +18,10 @@ export function ContactsMapPage() {
   return (
     <div className="grid" style={{ gap: '1rem' }}>
       <section className="panel">
-        <h2>מפת אנשי קשר</h2>
+        <h2>
+          <Icon icon={MapPin} size={20} />
+          מפת אנשי קשר
+        </h2>
         <p>{withCoords.length} מתוך {contacts?.length ?? 0} עם מיקום.</p>
         <MapView
           lat={center.lat}
@@ -34,7 +39,10 @@ export function ContactsMapPage() {
         <div className="list">
           {withCoords.map((c) => (
             <Link key={c.id} to={`/shlichut/contacts/${c.id}`} className="list-item">
-              <strong>{c.name}</strong>
+              <div className="actions" style={{ gap: '0.5rem' }}>
+                <Icon icon={User} size={ICON_SIZE_SM} />
+                <strong>{c.name}</strong>
+              </div>
               <span className="meta">{c.address}</span>
             </Link>
           ))}
