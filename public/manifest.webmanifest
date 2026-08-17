@@ -1,0 +1,19 @@
+{
+  "name": "ניהול אישי",
+  "short_name": "ניהול אישי",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "/menachem-project/",
+  "scope": "/menachem-project/",
+  "display": "standalone",
+  "background_color": "#f3efe6",
+  "theme_color": "#2f6f5e",
+  "icons": [
+    {
+      "src": "/menachem-project/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

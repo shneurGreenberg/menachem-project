@@ -1,4 +1,5 @@
-import { initializeApp, getApps, type FirebaseApp } from 'firebase/app'
+import { deleteApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app'
+import { getAuth, signInAnonymously } from 'firebase/auth'
 import {
   deleteDoc,
   doc,
@@ -12,6 +13,7 @@ import {
 import { beginSilentWrites, db as localDb, endSilentWrites } from '../db'
 import { exportAllData, importAllData, TABLES } from '../utils/backup'
 import {
+  clearStoredFirebaseConfig,
   getStoredFirebaseConfig,
   getStoredSyncCode,
   spaceIdFromCode,
@@ -49,6 +51,36 @@ export function subscribeSyncStatus(fn: (s: SyncStatus) => void) {
   }
 }
 
+export function describeSyncError(err: unknown): string {
+  const rec = err as { code?: string; message?: string }
+  const code = String(rec.code ?? '')
+  const raw = String(rec.message ?? err ?? '')
+  const blob = `${code} ${raw}`.toLowerCase()
+  if (blob.includes('permission-denied') || blob.includes('insufficient permissions')) {
+    return 'אין הרשאה לענן. בדקו ששני המחשבים משתמשים באותו קוד סנכרון, ושהכללים ב-Firestore פורסמו.'
+  }
+  if (
+    blob.includes('failed to fetch') ||
+    blob.includes('unavailable') ||
+    blob.includes('network')
+  ) {
+    return 'אין חיבור ל-Firebase. בדקו אינטרנט, חוסם פרסומות, או הרחבת דפדפן.'
+  }
+  if (blob.includes('invalid-api-key') || blob.includes('api-key-not-valid')) {
+    return 'מפתח Firebase שגוי במחשב הזה. נסו «סנכרן עכשיו» אחרי רענון, או מחקו נתוני אתר ישנים.'
+  }
+  if (blob.includes('app-check') || blob.includes('appcheck')) {
+    return 'Firebase App Check חוסם את המחשב הזה.'
+  }
+  if (blob.includes('resource-exhausted') || blob.includes('exceeds the maximum')) {
+    return 'הנתונים גדולים מדי למסמך אחד בענן. צמצמו תמונות או פנו אלינו לפיצול.'
+  }
+  if (blob.includes('subtle') || blob.includes('secure context')) {
+    return 'הסנכרון דורש HTTPS. פתחו את האתר מקישור GitHub Pages, לא מקובץ מקומי.'
+  }
+  return raw || 'שגיאה בסנכרון'
+}
+
 function stripUndefined(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stripUndefined)
   if (value && typeof value === 'object') {
@@ -68,14 +100,43 @@ async function ensureFirebase() {
   if (!config || !code) {
     throw new Error('חסרים הגדרות Firebase או קוד סנכרון')
   }
+  if (!window.isSecureContext || !crypto.subtle) {
+    throw new Error('הסנכרון דורש HTTPS. פתחו את האתר מקישור GitHub Pages.')
+  }
   if (!getApps().length) {
     app = initializeApp(config)
   } else {
     app = getApps()[0]!
   }
+  try {
+    const auth = getAuth(app)
+    if (!auth.currentUser) {
+      await signInAnonymously(auth).catch(() => undefined)
+    }
+  } catch {
+    /* anonymous auth optional — rules may allow unauthenticated space access */
+  }
   firestoreDb = getFirestore(app)
   spaceId = await spaceIdFromCode(code)
   return { db: firestoreDb, spaceId }
+}
+
+export async function restartSync() {
+  unsub?.()
+  unsub = null
+  spaceId = null
+  firestoreDb = null
+  if (app) {
+    try {
+      await deleteApp(app)
+    } catch {
+      /* already torn down */
+    }
+    app = null
+  }
+  localStorage.removeItem(LAST_HASH_KEY)
+  localStorage.removeItem(LAST_SYNC_KEY)
+  await startAutoSync()
 }
 
 function tableRef(firestore: Firestore, id: string, table: string) {
@@ -284,10 +345,12 @@ async function doSync() {
       lastSyncedAt: lastSync ?? new Date().toISOString(),
     })
   } catch (err) {
-    const raw = err instanceof Error ? err.message : 'שגיאה בסנכרון'
-    let message = raw
-    if (raw.includes('permission-denied')) {
-      message = 'אין הרשאה לענן — בדקו את כללי Firestore'
+    const message = describeSyncError(err)
+    if (
+      message.includes('מפתח Firebase שגוי') ||
+      String((err as { code?: string }).code ?? '').includes('invalid-api-key')
+    ) {
+      clearStoredFirebaseConfig()
     }
     setStatus({ state: 'error', message, lastSyncedAt: status.lastSyncedAt })
     throw err
@@ -330,7 +393,7 @@ function listenRemote() {
       } catch (err) {
         setStatus({
           state: 'error',
-          message: err instanceof Error ? err.message : 'שגיאה בעדכון מהענן',
+          message: describeSyncError(err),
         })
       }
     }
@@ -363,14 +426,9 @@ export async function startAutoSync() {
       })
     }
   } catch (err) {
-    const raw = err instanceof Error ? err.message : String(err)
-    let message = raw
-    if (raw.includes('permission-denied')) {
-      message = 'אין הרשאה לענן — בדקו את כללי Firestore'
-    }
     setStatus({
       state: 'error',
-      message,
+      message: describeSyncError(err),
     })
   }
 }

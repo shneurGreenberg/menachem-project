@@ -11,6 +11,7 @@ import {
   parseCategories,
   todayISO,
 } from '../utils/dates'
+import { CollapsibleAdd } from './CollapsibleAdd'
 import { FilterEmpty, listCountLabel } from './FilterEmpty'
 import { DateField } from './DateField'
 import { Icon, ICON_SIZE_SM } from './icons'
@@ -49,6 +50,10 @@ export function FinanceLedger({
   const rows = useLiveQuery(
     () => db.table(table).orderBy('date').reverse().toArray() as Promise<FinanceRow[]>,
     [table],
+  )
+  const budgetRow = useLiveQuery(
+    () => db.settings.where('key').equals('homeMonthlyBudget').first(),
+    [],
   )
   const [incomeCats, setIncomeCats] = useState<string[]>([])
   const [expenseCats, setExpenseCats] = useState<string[]>([])
@@ -101,6 +106,12 @@ export function FinanceLedger({
   const scoped = monthFilter === 'all' ? (rows ?? []) : (rows ?? []).filter((r) => monthKey(r.date) === monthFilter)
   const income = scoped.filter((r) => r.type === 'income').reduce((s, r) => s + r.amount, 0)
   const expense = scoped.filter((r) => r.type === 'expense').reduce((s, r) => s + r.amount, 0)
+  const budgetGoal = Number(budgetRow?.value) || 0
+  const thisMonth = monthKey(todayISO())
+  const monthExpense = (rows ?? [])
+    .filter((r) => r.type === 'expense' && monthKey(r.date) === thisMonth)
+    .reduce((s, r) => s + r.amount, 0)
+  const overBudget = budgetGoal > 0 && monthExpense > budgetGoal
 
   async function addRow(e: React.FormEvent) {
     e.preventDefault()
@@ -147,75 +158,21 @@ export function FinanceLedger({
           <span className="value">{formatMoney(income - expense)}</span>
           <span className="label">יתרה</span>
         </div>
-      </section>
-
-      <section className="panel">
-        <h2>{heading}</h2>
-        {intro && <p className="muted">{intro}</p>}
-        <form className="form" onSubmit={addRow}>
-          <div className="form-row">
-            <div className="field">
-              <label>סוג</label>
-              <select
-                value={form.type}
-                onChange={(e) =>
-                  setForm((s) => ({
-                    ...s,
-                    type: e.target.value as FinanceType,
-                    category: '',
-                  }))
-                }
-              >
-                <option value="income">הכנסה</option>
-                <option value="expense">הוצאה</option>
-              </select>
-            </div>
-            <div className="field">
-              <label>סכום</label>
-              <input
-                type="number"
-                min={0}
-                required
-                value={form.amount}
-                onChange={(e) => setForm((s) => ({ ...s, amount: e.target.value }))}
+        {table === 'homeTransactions' && budgetGoal > 0 && (
+          <div className="panel stat">
+            <span className={`value${overBudget ? ' over-budget' : ''}`}>
+              {formatMoney(monthExpense)} / {formatMoney(budgetGoal)}
+            </span>
+            <span className="label">יעד הוצאות החודש</span>
+            <div className={`budget-track${overBudget ? ' is-over' : ''}`}>
+              <span
+                style={{
+                  width: `${Math.min(100, (monthExpense / budgetGoal) * 100)}%`,
+                }}
               />
             </div>
-            <div className="field">
-              <label>קטגוריה</label>
-              <select
-                required
-                value={form.category}
-                onChange={(e) => setForm((s) => ({ ...s, category: e.target.value }))}
-              >
-                <option value="">—</option>
-                {cats.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <DateField
-              label="תאריך"
-              value={form.date}
-              onChange={(date) => setForm((s) => ({ ...s, date }))}
-              required
-            />
           </div>
-          <div className="field">
-            <label>תיאור</label>
-            <input
-              value={form.description}
-              onChange={(e) =>
-                setForm((s) => ({ ...s, description: e.target.value }))
-              }
-            />
-          </div>
-          <button type="submit" className={`btn ${buttonClass}`}>
-            <Icon icon={Plus} size={ICON_SIZE_SM} />
-            הוספה
-          </button>
-        </form>
+        )}
       </section>
 
       <section className="panel">
@@ -325,6 +282,74 @@ export function FinanceLedger({
           />
         </div>
       </section>
+
+      <CollapsibleAdd title={heading} buttonLabel="הוספת רשומה" buttonClass={buttonClass}>
+        {intro && <p className="muted">{intro}</p>}
+        <form className="form" onSubmit={addRow}>
+          <div className="form-row">
+            <div className="field">
+              <label>סוג</label>
+              <select
+                value={form.type}
+                onChange={(e) =>
+                  setForm((s) => ({
+                    ...s,
+                    type: e.target.value as FinanceType,
+                    category: '',
+                  }))
+                }
+              >
+                <option value="income">הכנסה</option>
+                <option value="expense">הוצאה</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>סכום</label>
+              <input
+                type="number"
+                min={0}
+                required
+                value={form.amount}
+                onChange={(e) => setForm((s) => ({ ...s, amount: e.target.value }))}
+              />
+            </div>
+            <div className="field">
+              <label>קטגוריה</label>
+              <select
+                required
+                value={form.category}
+                onChange={(e) => setForm((s) => ({ ...s, category: e.target.value }))}
+              >
+                <option value="">—</option>
+                {cats.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <DateField
+              label="תאריך"
+              value={form.date}
+              onChange={(date) => setForm((s) => ({ ...s, date }))}
+              required
+            />
+          </div>
+          <div className="field">
+            <label>תיאור</label>
+            <input
+              value={form.description}
+              onChange={(e) =>
+                setForm((s) => ({ ...s, description: e.target.value }))
+              }
+            />
+          </div>
+          <button type="submit" className={`btn ${buttonClass}`}>
+            <Icon icon={Plus} size={ICON_SIZE_SM} />
+            הוספה
+          </button>
+        </form>
+      </CollapsibleAdd>
     </div>
   )
 }

@@ -2,14 +2,17 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { IdCard, Loader2, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { CollapsibleAdd } from '../../components/CollapsibleAdd'
 import { FilterEmpty, listCountLabel } from '../../components/FilterEmpty'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { db } from '../../db'
-import { compareHe, nowISO } from '../../utils/dates'
+import { compareHe, daysUntil, nowISO } from '../../utils/dates'
 import { geocodeAddress } from '../../utils/geocode'
+import { lastVisitByContact, lastVisitLabel } from '../../utils/visits'
 
 export function ContactsPage() {
   const contacts = useLiveQuery(() => db.contacts.toArray(), [])
+  const visits = useLiveQuery(() => lastVisitByContact(), [])
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
@@ -78,48 +81,6 @@ export function ContactsPage() {
   return (
     <div className="grid" style={{ gap: '1.25rem' }}>
       <section className="panel">
-        <h2>איש קשר חדש</h2>
-        <form className="form" onSubmit={addContact}>
-          <div className="form-row">
-            <div className="field">
-              <label>שם</label>
-              <input required value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>טלפון</label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label>כתובת</label>
-              <input
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="למיקום אוטומטי במפה"
-              />
-            </div>
-          </div>
-          {geoMsg && <p className="muted">{geoMsg}</p>}
-          <button type="submit" className="btn shlichut" disabled={busy}>
-            {busy ? (
-              <>
-                <Icon icon={Loader2} size={ICON_SIZE_SM} className="spin" />
-                שומר…
-              </>
-            ) : (
-              <>
-                <Icon icon={Plus} size={ICON_SIZE_SM} />
-                הוספה
-              </>
-            )}
-          </button>
-        </form>
-      </section>
-
-      <section className="panel">
         <h2>רשימה ({listCountLabel(filtered.length, sorted.length)})</h2>
         <div className="actions" style={{ marginBottom: '0.75rem' }}>
           <div className="field" style={{ flex: 1, minWidth: 220 }}>
@@ -158,34 +119,86 @@ export function ContactsPage() {
           />
         ) : (
           <div className="list">
-            {filtered.map((c) => (
-              <Link key={c.id} to={`/shlichut/contacts/${c.id}`} className="list-item">
-                <div className="actions" style={{ gap: '0.65rem', alignItems: 'center' }}>
-                  {c.imageDataUrl ? (
-                    <img className="contact-avatar" src={c.imageDataUrl} alt="" />
-                  ) : (
-                    <div className="contact-avatar contact-avatar-placeholder">
-                      {c.name.slice(0, 1)}
-                    </div>
-                  )}
-                  <div className="stack-sm">
-                    <strong>{c.name}</strong>
-                    <div className="meta">
-                      {c.address || 'ללא כתובת'}
-                      {c.phone ? ` · ${c.phone}` : ''}
-                      {c.lat != null ? ' · על המפה' : ''}
+            {filtered.map((c) => {
+              const last = c.id != null ? visits?.get(c.id) : undefined
+              const ago = last ? -daysUntil(last) : 999
+              return (
+                <Link key={c.id} to={`/shlichut/contacts/${c.id}`} className="list-item">
+                  <div className="actions" style={{ gap: '0.65rem', alignItems: 'center' }}>
+                    {c.imageDataUrl ? (
+                      <img className="contact-avatar" src={c.imageDataUrl} alt="" />
+                    ) : (
+                      <div className="contact-avatar contact-avatar-placeholder">
+                        {c.name.slice(0, 1)}
+                      </div>
+                    )}
+                    <div className="stack-sm">
+                      <strong>{c.name}</strong>
+                      <div className="meta">
+                        {c.address || 'ללא כתובת'}
+                        {c.phone ? ` · ${c.phone}` : ''}
+                        {c.lat != null ? ' · על המפה' : ''}
+                      </div>
+                      <div className={ago >= 60 ? 'meta stale' : 'meta'}>
+                        ביקור אחרון: {lastVisitLabel(last)}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <span className="btn small secondary">
-                  <Icon icon={IdCard} size={ICON_SIZE_SM} />
-                  כרטיס
-                </span>
-              </Link>
-            ))}
+                  <span className="btn small secondary">
+                    <Icon icon={IdCard} size={ICON_SIZE_SM} />
+                    כרטיס
+                  </span>
+                </Link>
+              )
+            })}
           </div>
         )}
       </section>
+
+      <CollapsibleAdd
+        title="איש קשר חדש"
+        buttonLabel="הוספת איש קשר"
+        buttonClass="shlichut"
+      >
+        <form className="form" onSubmit={addContact}>
+          <div className="form-row">
+            <div className="field">
+              <label>שם</label>
+              <input required value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div className="field">
+              <label>טלפון</label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label>כתובת</label>
+              <input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="למיקום אוטומטי במפה"
+              />
+            </div>
+          </div>
+          {geoMsg && <p className="muted">{geoMsg}</p>}
+          <button type="submit" className="btn shlichut" disabled={busy}>
+            {busy ? (
+              <>
+                <Icon icon={Loader2} size={ICON_SIZE_SM} className="spin" />
+                שומר…
+              </>
+            ) : (
+              <>
+                <Icon icon={Plus} size={ICON_SIZE_SM} />
+                הוספה
+              </>
+            )}
+          </button>
+        </form>
+      </CollapsibleAdd>
     </div>
   )
 }

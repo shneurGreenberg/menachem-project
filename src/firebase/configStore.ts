@@ -49,6 +49,10 @@ export function saveFirebaseConfig(config: FirebaseWebConfig) {
   localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(config))
 }
 
+export function clearStoredFirebaseConfig() {
+  localStorage.removeItem(FIREBASE_CONFIG_KEY)
+}
+
 function envFirebaseConfig(): FirebaseWebConfig | null {
   const apiKey = import.meta.env.VITE_FIREBASE_API_KEY as string | undefined
   const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID as string | undefined

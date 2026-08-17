@@ -51,6 +51,7 @@ interface MapPickerProps {
     address?: string
     phone?: string
     href?: string
+    meta?: string
   }[]
   heightClass?: string
   draggable?: boolean
@@ -184,6 +185,9 @@ export function MapView({
                         {m.phone ? (
                           <div className="contact-tooltip-line">{m.phone}</div>
                         ) : null}
+                        {m.meta ? (
+                          <div className="contact-tooltip-line">{m.meta}</div>
+                        ) : null}
                         {m.href ? (
                           <Link
                             to={m.href}
@@ -239,6 +243,9 @@ export function MapView({
                         ) : null}
                         {m.phone ? (
                           <div className="contact-tooltip-line">{m.phone}</div>
+                        ) : null}
+                        {m.meta ? (
+                          <div className="contact-tooltip-line">{m.meta}</div>
                         ) : null}
                         {m.href ? (
                           <Link

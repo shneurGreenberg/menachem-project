@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { CalendarPlus, FolderOpen } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { CollapsibleAdd } from '../../components/CollapsibleAdd'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { DateField } from '../../components/DateField'
 import { db } from '../../db'
@@ -36,7 +37,36 @@ export function PlansPage() {
   return (
     <div className="grid" style={{ gap: '1.25rem' }}>
       <section className="panel">
-        <h2>תוכנית חדשה</h2>
+        <h2>תוכניות</h2>
+        {!plans?.length ? (
+          <div className="empty">אין תוכניות עדיין.</div>
+        ) : (
+          <div className="list">
+            {plans.map((p) => (
+              <Link key={p.id} to={`/shlichut/plans/${p.id}`} className="list-item">
+                <div className="stack-sm">
+                  <strong>{p.title}</strong>
+                  <div className="meta">
+                    {formatDate(p.targetDate)}
+                    {p.budget != null ? ` · תקציב ${formatMoney(p.budget)}` : ''}
+                    {` · ${p.status === 'active' ? 'פעילה' : p.status === 'completed' ? 'הושלמה' : 'בארכיון'}`}
+                  </div>
+                </div>
+                <span className="btn small secondary">
+                  <Icon icon={FolderOpen} size={ICON_SIZE_SM} />
+                  פתיחה
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <CollapsibleAdd
+        title="תוכנית חדשה"
+        buttonLabel="הוספת תוכנית"
+        buttonClass="shlichut"
+      >
         <form className="form" onSubmit={addPlan}>
           <div className="form-row">
             <div className="field">
@@ -76,33 +106,7 @@ export function PlansPage() {
             יצירת תוכנית
           </button>
         </form>
-      </section>
-
-      <section className="panel">
-        <h2>תוכניות</h2>
-        {!plans?.length ? (
-          <div className="empty">אין תוכניות עדיין.</div>
-        ) : (
-          <div className="list">
-            {plans.map((p) => (
-              <Link key={p.id} to={`/shlichut/plans/${p.id}`} className="list-item">
-                <div className="stack-sm">
-                  <strong>{p.title}</strong>
-                  <div className="meta">
-                    {formatDate(p.targetDate)}
-                    {p.budget != null ? ` · תקציב ${formatMoney(p.budget)}` : ''}
-                    {` · ${p.status === 'active' ? 'פעילה' : p.status === 'completed' ? 'הושלמה' : 'בארכיון'}`}
-                  </div>
-                </div>
-                <span className="btn small secondary">
-                  <Icon icon={FolderOpen} size={ICON_SIZE_SM} />
-                  פתיחה
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
+      </CollapsibleAdd>
     </div>
   )
 }

@@ -10,15 +10,17 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { DateField } from '../../components/DateField'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { MapView } from '../../components/MapView'
 import { SaveBar } from '../../components/SaveBar'
-import { PhoneLink } from '../../components/PhoneLink'
+import { ContactActions, PhoneLink } from '../../components/PhoneLink'
 import { db } from '../../db'
 import { useSaveFeedback } from '../../hooks/useSaveFeedback'
-import { formatDate, nowISO } from '../../utils/dates'
+import { formatDate, nowISO, todayISO } from '../../utils/dates'
 import { geocodeAddress } from '../../utils/geocode'
 import { fileToCompressedJpegDataUrl } from '../../utils/image'
+import { lastVisitLabel } from '../../utils/visits'
 
 export function ContactDetailPage() {
   const { id } = useParams()
@@ -46,6 +48,11 @@ export function ContactDetailPage() {
     () => db.reminders.where('contactId').equals(contactId).toArray(),
     [contactId],
   )
+  const activityTypes = useLiveQuery(() => db.activityTypes.toArray(), [])
+  const activities = useLiveQuery(
+    () => db.activities.where('contactId').equals(contactId).toArray(),
+    [contactId],
+  )
 
   const [form, setForm] = useState({
     name: '',
@@ -60,11 +67,25 @@ export function ContactDetailPage() {
   const [geoMsg, setGeoMsg] = useState('')
   const [imgBusy, setImgBusy] = useState(false)
   const [imgMsg, setImgMsg] = useState('')
+  const [visitTypeId, setVisitTypeId] = useState('')
+  const [visitDate, setVisitDate] = useState(todayISO())
+  const [visitNotes, setVisitNotes] = useState('')
+  const [visitMsg, setVisitMsg] = useState('')
   const [baseline, setBaseline] = useState('')
   const { saving, saved, error, runSave } = useSaveFeedback()
 
   const formSnapshot = useMemo(() => JSON.stringify(form), [form])
   const dirty = baseline !== '' && formSnapshot !== baseline
+  const lastVisitIso = useMemo(() => {
+    let max = ''
+    for (const l of logs ?? []) {
+      if (l.date && l.date > max) max = l.date
+    }
+    for (const a of activities ?? []) {
+      if (a.date && a.date > max) max = a.date
+    }
+    return max || undefined
+  }, [logs, activities])
 
   useEffect(() => {
     if (!contact) return
@@ -175,6 +196,33 @@ export function ContactDetailPage() {
     navigate('/shlichut/contacts')
   }
 
+  async function logVisit(e: React.FormEvent) {
+    e.preventDefault()
+    const ts = nowISO()
+    const type = (activityTypes ?? []).find((t) => t.id === Number(visitTypeId))
+    const title = type?.name ?? 'ביקור'
+    if (type?.id != null) {
+      await db.activities.add({
+        contactId,
+        activityTypeId: type.id,
+        date: visitDate,
+        notes: visitNotes.trim() || undefined,
+        createdAt: ts,
+      })
+    }
+    await db.contactActivityLogs.add({
+      contactId,
+      kind: 'activity',
+      title,
+      details: visitNotes.trim() || undefined,
+      date: visitDate,
+      createdAt: ts,
+    })
+    setVisitNotes('')
+    setVisitDate(todayISO())
+    setVisitMsg('הביקור נרשם.')
+  }
+
   return (
     <div className="grid" style={{ gap: '1.25rem' }}>
       <div className="actions">
@@ -190,6 +238,13 @@ export function ContactDetailPage() {
 
       <section className="panel">
         <h2>{form.name || 'כרטיס איש קשר'}</h2>
+        <p className="muted">ביקור אחרון: {lastVisitLabel(lastVisitIso)}</p>
+        <ContactActions
+          phone={form.phone}
+          address={form.address}
+          lat={form.lat}
+          lng={form.lng}
+        />
         <form className="form" onSubmit={save}>
           <div className="form-row">
             <div className="field">
@@ -337,6 +392,41 @@ export function ContactDetailPage() {
         variant="shlichut"
         context={form.name || 'כרטיס איש קשר'}
       />
+
+      <section className="panel">
+        <h3>רישום ביקור</h3>
+        <form className="form" onSubmit={logVisit}>
+          <div className="form-row">
+            <div className="field">
+              <label>סוג פעילות</label>
+              <select
+                value={visitTypeId}
+                onChange={(e) => setVisitTypeId(e.target.value)}
+              >
+                <option value="">ביקור</option>
+                {(activityTypes ?? []).map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <DateField label="תאריך" value={visitDate} onChange={setVisitDate} required />
+          </div>
+          <div className="field">
+            <label>הערה</label>
+            <input
+              value={visitNotes}
+              onChange={(e) => setVisitNotes(e.target.value)}
+              placeholder="אופציונלי"
+            />
+          </div>
+          <button type="submit" className="btn shlichut">
+            שמירת ביקור
+          </button>
+          {visitMsg && <span className="meta">{visitMsg}</span>}
+        </form>
+      </section>
 
       <section className="panel">
         <h3>מפה — גרור את הסימון לעדכון מיקום</h3>

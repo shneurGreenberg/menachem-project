@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { BookPlus, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { CollapsibleAdd } from '../../components/CollapsibleAdd'
 import { FilterEmpty, listCountLabel } from '../../components/FilterEmpty'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { db } from '../../db'
@@ -64,56 +65,6 @@ export function MaterialsPage() {
 
   return (
     <div className="grid" style={{ gap: '1.25rem' }}>
-      <section className="panel">
-        <h2>חומר לימוד חדש</h2>
-        <form className="form" onSubmit={add}>
-          <div className="form-row">
-            <div className="field">
-              <label>כותרת</label>
-              <input
-                required
-                value={form.title}
-                onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))}
-              />
-            </div>
-            <div className="field">
-              <label>קישור</label>
-              <input
-                type="url"
-                placeholder="https://..."
-                value={form.url}
-                onChange={(e) => setForm((s) => ({ ...s, url: e.target.value }))}
-              />
-            </div>
-            <div className="field">
-              <label>תגיות (פסיקים)</label>
-              <input
-                value={form.tags}
-                onChange={(e) => setForm((s) => ({ ...s, tags: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="field">
-            <label>תוכן / טקסט</label>
-            <textarea
-              value={form.content}
-              onChange={(e) => setForm((s) => ({ ...s, content: e.target.value }))}
-            />
-          </div>
-          <div className="field">
-            <label>הערות</label>
-            <textarea
-              value={form.notes}
-              onChange={(e) => setForm((s) => ({ ...s, notes: e.target.value }))}
-            />
-          </div>
-          <button type="submit" className="btn chinuch">
-            <Icon icon={BookPlus} size={ICON_SIZE_SM} />
-            הוספה
-          </button>
-        </form>
-      </section>
-
       <section className="panel">
         <div className="actions" style={{ marginBottom: '0.75rem' }}>
           <h2 style={{ margin: 0, flex: 1 }}>
@@ -199,6 +150,59 @@ export function MaterialsPage() {
             </div>
         )}
       </section>
+
+      <CollapsibleAdd
+        title="חומר לימוד חדש"
+        buttonLabel="הוספת חומר"
+        buttonClass="chinuch"
+      >
+        <form className="form" onSubmit={add}>
+          <div className="form-row">
+            <div className="field">
+              <label>כותרת</label>
+              <input
+                required
+                value={form.title}
+                onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))}
+              />
+            </div>
+            <div className="field">
+              <label>קישור</label>
+              <input
+                type="url"
+                placeholder="https://..."
+                value={form.url}
+                onChange={(e) => setForm((s) => ({ ...s, url: e.target.value }))}
+              />
+            </div>
+            <div className="field">
+              <label>תגיות (פסיקים)</label>
+              <input
+                value={form.tags}
+                onChange={(e) => setForm((s) => ({ ...s, tags: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="field">
+            <label>תוכן / טקסט</label>
+            <textarea
+              value={form.content}
+              onChange={(e) => setForm((s) => ({ ...s, content: e.target.value }))}
+            />
+          </div>
+          <div className="field">
+            <label>הערות</label>
+            <textarea
+              value={form.notes}
+              onChange={(e) => setForm((s) => ({ ...s, notes: e.target.value }))}
+            />
+          </div>
+          <button type="submit" className="btn chinuch">
+            <Icon icon={BookPlus} size={ICON_SIZE_SM} />
+            הוספה
+          </button>
+        </form>
+      </CollapsibleAdd>
     </div>
   )
 }

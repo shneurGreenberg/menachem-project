@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Moon, Plus, Save, Sun, Trash2 } from 'lucide-react'
+import { Bell, Moon, Plus, Save, Smartphone, Sun, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Icon, ICON_SIZE_SM } from '../components/icons'
 import { SaveBar } from '../components/SaveBar'
@@ -8,6 +8,7 @@ import { db, getSetting, setSetting } from '../db'
 import { useSaveFeedback } from '../hooks/useSaveFeedback'
 import type { CustomFieldDef, FieldType } from '../types'
 import { parseCategories } from '../utils/dates'
+import { NOTIFY_SETTING, requestNotifyPermission } from '../utils/notify'
 import { getStoredTheme, persistTheme, type Theme } from '../theme'
 
 const HOME_INCOME = ['משכורת', 'מתנות', 'אחר']
@@ -23,11 +24,14 @@ export function SettingsPage() {
   const activityTypes = useLiveQuery(() => db.activityTypes.toArray(), [])
   const [leadDays, setLeadDays] = useState('45')
   const [savedLeadDays, setSavedLeadDays] = useState('45')
+  const [budget, setBudget] = useState('')
+  const [savedBudget, setSavedBudget] = useState('')
+  const [notifyOn, setNotifyOn] = useState(false)
   const [msg, setMsg] = useState('')
   const [theme, setTheme] = useState<Theme>(getStoredTheme())
   const { saving, saved, error, runSave } = useSaveFeedback()
 
-  const leadDirty = leadDays !== savedLeadDays
+  const leadDirty = leadDays !== savedLeadDays || budget !== savedBudget
 
   const [fieldForm, setFieldForm] = useState({
     label: '',
@@ -45,6 +49,13 @@ export function SettingsPage() {
     void getSetting('theme', getStoredTheme()).then((value) => {
       if (value === 'dark' || value === 'light') setTheme(value)
     })
+    void getSetting('homeMonthlyBudget', '').then((value) => {
+      setBudget(value)
+      setSavedBudget(value)
+    })
+    void getSetting(NOTIFY_SETTING, '0').then((value) => {
+      setNotifyOn(value === '1')
+    })
   }, [])
 
   async function chooseTheme(next: Theme) {
@@ -52,14 +63,35 @@ export function SettingsPage() {
     await persistTheme(next)
   }
 
+  async function toggleNotify() {
+    if (!notifyOn) {
+      const ok = await requestNotifyPermission()
+      if (!ok) {
+        setMsg('הדפדפן לא אישר התראות.')
+        return
+      }
+      await setSetting(NOTIFY_SETTING, '1')
+      setNotifyOn(true)
+      setMsg('התראות הופעלו.')
+    } else {
+      await setSetting(NOTIFY_SETTING, '0')
+      setNotifyOn(false)
+      setMsg('התראות כובו.')
+    }
+  }
+
   async function saveLead() {
     await runSave(async () => {
       const n = Math.min(90, Math.max(7, Number(leadDays) || 45))
       const value = String(n)
       await setSetting('planResurfaceLeadDays', value)
+      const budgetValue = budget.trim()
+      await setSetting('homeMonthlyBudget', budgetValue)
       setLeadDays(value)
       setSavedLeadDays(value)
-      setMsg('ימי הקדמה נשמרו.')
+      setBudget(budgetValue)
+      setSavedBudget(budgetValue)
+      setMsg('ההגדרות נשמרו.')
     })
   }
 
@@ -153,6 +185,29 @@ export function SettingsPage() {
         </section>
 
         <section className="panel">
+          <h2>התראות ומסך הבית</h2>
+          <p className="muted">
+            אפשר להוסיף את האפליקציה למסך הבית מתפריט הדפדפן («הוספה למסך הבית» / Add to Home Screen).
+          </p>
+          <div className="theme-row">
+            <p className="muted" style={{ margin: 0 }}>
+              התראה בבוקר על מה שפג היום (פעם אחת ליום).
+            </p>
+            <button
+              type="button"
+              className={`btn ${notifyOn ? '' : 'secondary'}`}
+              onClick={() => void toggleNotify()}
+            >
+              <Icon icon={Bell} size={ICON_SIZE_SM} />
+              {notifyOn ? 'התראות פעילות' : 'הפעלת התראות'}
+            </button>
+          </div>
+          <p className="muted" style={{ marginTop: '0.75rem' }}>
+            <Icon icon={Smartphone} size={ICON_SIZE_SM} /> אחרי ההתקנה האפליקציה נפתחת בחלון עצמאי.
+          </p>
+        </section>
+
+        <section className="panel">
           <h2>התראות שנתיות לתוכניות</h2>
           <div className="form-row">
             <div className="field">
@@ -177,6 +232,19 @@ export function SettingsPage() {
         <section className="panel">
           <h2>קטגוריות כספים</h2>
           <p className="muted">מופרדות בפסיק. נשמרות מיד.</p>
+          <div className="field" style={{ marginBottom: '0.75rem' }}>
+            <label>יעד הוצאות בית לחודש (₪)</label>
+            <input
+              type="number"
+              min={0}
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+              placeholder="למשל 8000"
+            />
+            <p className="muted" style={{ margin: '0.35rem 0 0' }}>
+              נשמר עם כפתור השמירה למעלה. מופיע בדף הבית וביומן.
+            </p>
+          </div>
           <CategoryEditor
             settingKey="homeIncomeCategories"
             label="הכנסות בית"

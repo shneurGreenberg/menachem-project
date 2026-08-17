@@ -4,6 +4,7 @@ export type ModuleId = 'shlichut' | 'chinuch' | 'bayit'
 export type FinanceType = 'income' | 'expense'
 export type PlanStatus = 'active' | 'completed' | 'archived'
 export type FieldType = 'text' | 'number' | 'select'
+export type RepeatKind = 'none' | 'weekly' | 'monthly'
 
 export interface Contact {
   id?: number
@@ -100,6 +101,8 @@ export interface Reminder {
   module: ModuleId
   completedAt?: string
   createdAt: string
+  repeat?: RepeatKind
+  studentId?: number
 }
 
 export interface ChabadFinance {

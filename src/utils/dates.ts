@@ -14,6 +14,11 @@ export function addDaysLocal(iso: string, days: number): string {
   return toLocalISODate(new Date(y, (m ?? 1) - 1, (d ?? 1) + days))
 }
 
+export function addMonthsLocal(iso: string, months = 1): string {
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number)
+  return toLocalISODate(new Date(y, (m ?? 1) - 1 + months, d ?? 1))
+}
+
 export function monthStartISO(from: Date = new Date()): string {
   return toLocalISODate(new Date(from.getFullYear(), from.getMonth(), 1))
 }

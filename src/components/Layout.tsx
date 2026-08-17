@@ -1,9 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
+  CalendarDays,
   GraduationCap,
   HeartHandshake,
   Home,
   LayoutDashboard,
+  Search,
   Settings,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -28,6 +30,26 @@ const links: {
   { to: '/settings', label: 'הגדרות', icon: Settings },
 ]
 
+function NavItems() {
+  return (
+    <>
+      {links.map((l) => (
+        <NavLink
+          key={l.to}
+          to={l.to}
+          end={l.end}
+          className={({ isActive }) =>
+            [l.className, isActive ? 'active' : ''].filter(Boolean).join(' ')
+          }
+        >
+          <Icon icon={l.icon} size={ICON_SIZE_SM} />
+          {l.label}
+        </NavLink>
+      ))}
+    </>
+  )
+}
+
 export function Layout() {
   const themeRow = useLiveQuery(
     () => db.settings.where('key').equals('theme').first(),
@@ -46,25 +68,24 @@ export function Layout() {
           ניהול <span>אישי</span>
         </div>
         <SyncBadge />
+        <div className="nav-icons">
+          <NavLink to="/search" className="nav-icon" aria-label="חיפוש">
+            <Icon icon={Search} size={ICON_SIZE_SM} />
+          </NavLink>
+          <NavLink to="/calendar" className="nav-icon" aria-label="יומן">
+            <Icon icon={CalendarDays} size={ICON_SIZE_SM} />
+          </NavLink>
+        </div>
         <nav className="nav-links">
-          {links.map((l) => (
-            <NavLink
-              key={l.to}
-              to={l.to}
-              end={l.end}
-              className={({ isActive }) =>
-                [l.className, isActive ? 'active' : ''].filter(Boolean).join(' ')
-              }
-            >
-              <Icon icon={l.icon} size={ICON_SIZE_SM} />
-              {l.label}
-            </NavLink>
-          ))}
+          <NavItems />
         </nav>
       </header>
       <main className="main">
         <Outlet />
       </main>
+      <nav className="bottom-nav" aria-label="ניווט ראשי">
+        <NavItems />
+      </nav>
     </div>
   )
 }

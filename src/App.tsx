@@ -22,6 +22,9 @@ import { BayitLayout } from './pages/bayit/BayitLayout'
 import { BayitHome } from './pages/bayit/BayitHome'
 import { HomeFinancePage } from './pages/bayit/HomeFinancePage'
 import { HomeTasksPage } from './pages/bayit/HomeTasksPage'
+import { SearchPage } from './pages/SearchPage'
+import { CalendarPage } from './pages/CalendarPage'
+import { ChinuchTasksPage } from './pages/shlichut/RemindersPage'
 
 export default function App() {
   return (
@@ -29,6 +32,8 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
+          <Route path="search" element={<SearchPage />} />
+          <Route path="calendar" element={<CalendarPage />} />
           <Route path="settings" element={<SettingsPage />} />
 
           <Route path="shlichut" element={<ShlichutLayout />}>
@@ -47,6 +52,7 @@ export default function App() {
             <Route index element={<ChinuchHome />} />
             <Route path="students" element={<StudentsPage />} />
             <Route path="students/:id" element={<StudentDetailPage />} />
+            <Route path="tasks" element={<ChinuchTasksPage />} />
             <Route path="materials" element={<MaterialsPage />} />
             <Route path="plans" element={<TeachingPlansPage />} />
           </Route>

@@ -2,13 +2,14 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Check,
   Calendar,
+  CalendarDays,
   ExternalLink,
   GraduationCap,
   HeartHandshake,
   Home,
   RotateCcw,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PriorityBadge, StatusBadge } from '../components/Badges'
 import { Icon, ICON_SIZE_LG, ICON_SIZE_SM } from '../components/icons'
@@ -24,6 +25,8 @@ import {
   nowISO,
   todayISO,
 } from '../utils/dates'
+import { upcomingHolidays } from '../utils/holidays'
+import { notifyDueToday } from '../utils/notify'
 import {
   completeReminder,
   reminderModuleLabel,
@@ -61,6 +64,10 @@ export function Dashboard() {
   const summaries = useLiveQuery(() => db.planSummaries.toArray(), [])
   const contacts = useLiveQuery(() => db.contacts.count(), [])
   const students = useLiveQuery(() => db.students.count(), [])
+  const notifyRow = useLiveQuery(
+    () => db.settings.where('key').equals('notifyDueToday').first(),
+    [],
+  )
 
   const openReminders = sortOpenItems(reminders ?? [])
   const openHome = sortOpenItems(homeTasks ?? [])
@@ -125,11 +132,24 @@ export function Dashboard() {
         t.dueDate && t.dueDate >= monthStart && t.dueDate < nextMonthISO,
     ).length
 
+  const holidays = useMemo(() => {
+    try {
+      return upcomingHolidays()
+    } catch {
+      return []
+    }
+  }, [])
+
+  useEffect(() => {
+    if (notifyRow?.value !== '1') return
+    notifyDueToday(dueToday)
+  }, [dueToday, notifyRow])
+
   return (
     <div>
       <section className="dashboard-hero page-header">
         <h1>דשבורד</h1>
-        <p>תזכורות פתוחות מכל המחלקות, התראות שנתיות וקיצורי דרך.</p>
+        <p>תזכורות פתוחות מכל המחלקות, חגים, יומן וקיצורי דרך.</p>
       </section>
 
       <section
@@ -156,6 +176,29 @@ export function Dashboard() {
           <span className="label">סה״כ פתוחים</span>
         </div>
       </section>
+
+      {holidays.length > 0 && (
+        <section className="dashboard-section panel" style={{ marginBottom: '1.25rem' }}>
+          <h2>חגים קרובים</h2>
+          <div className="list">
+            {holidays.map((h) => (
+              <div key={`${h.date}:${h.title}`} className="list-item">
+                <div className="stack-sm">
+                  <strong>{h.title}</strong>
+                  <div className="meta">
+                    {h.days === 0
+                      ? 'היום'
+                      : h.days === 1
+                        ? 'מחר'
+                        : `בעוד ${h.days} ימים`}
+                    {` · ${formatDate(h.date)}`}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="dashboard-section panel" style={{ marginBottom: '1.25rem' }}>
         <h2>תזכורות פתוחות</h2>
@@ -356,6 +399,13 @@ export function Dashboard() {
             בית
           </h3>
           <p>{openHome.length} משימות פתוחות · כספים</p>
+        </Link>
+        <Link to="/calendar" className="shortcut">
+          <h3>
+            <Icon icon={CalendarDays} size={ICON_SIZE_LG} />
+            יומן
+          </h3>
+          <p>כל המשימות והחגים · ייצוא לגוגל</p>
         </Link>
       </section>
     </div>

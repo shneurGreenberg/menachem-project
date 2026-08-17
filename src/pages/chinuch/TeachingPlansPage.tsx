@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, ClipboardPlus, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { CollapsibleAdd } from '../../components/CollapsibleAdd'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { DateField } from '../../components/DateField'
 import { db } from '../../db'
@@ -14,6 +15,7 @@ export function TeachingPlansPage() {
   const materials = useLiveQuery(() => db.lessonMaterials.toArray(), [])
   const students = useLiveQuery(() => db.students.toArray(), [])
 
+  const [formOpen, setFormOpen] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
   const [form, setForm] = useState({
     title: '',
@@ -45,6 +47,7 @@ export function TeachingPlansPage() {
       })
     }
     setEditId(null)
+    setFormOpen(false)
     setForm({
       title: '',
       topic: '',
@@ -59,6 +62,7 @@ export function TeachingPlansPage() {
     const p = (plans ?? []).find((x) => x.id === id)
     if (!p) return
     setEditId(id)
+    setFormOpen(true)
     setForm({
       title: p.title,
       topic: p.topic,
@@ -96,7 +100,78 @@ export function TeachingPlansPage() {
   return (
     <div className="grid" style={{ gap: '1.25rem' }}>
       <section className="panel">
-        <h2>{editId != null ? 'עריכת תוכנית הוראה' : 'תוכנית הוראה חדשה'}</h2>
+        <h2>תוכניות</h2>
+        {!plans?.length ? (
+          <div className="empty">אין תוכניות הוראה.</div>
+        ) : (
+          <div className="list">
+            {plans.map((p) => (
+              <div key={p.id} className="list-item">
+                <div className="stack-sm">
+                  <strong>{p.title}</strong>
+                  <div className="meta">
+                    {p.topic}
+                    {p.date ? ` · ${formatDate(p.date)}` : ''}
+                    {` · ${p.status === 'planned' ? 'מתוכננת' : 'בוצעה'}`}
+                  </div>
+                  <div className="meta">
+                    חומרים: {p.materialIds.length} · תלמידים: {p.studentIds.length}
+                  </div>
+                </div>
+                <div className="actions">
+                  {p.status === 'planned' && (
+                    <button
+                      type="button"
+                      className="btn small chinuch"
+                      onClick={() => markDone(p.id)}
+                    >
+                      <Icon icon={Check} size={ICON_SIZE_SM} />
+                      בוצע
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn small secondary"
+                    onClick={() => p.id != null && startEdit(p.id)}
+                  >
+                    <Icon icon={Pencil} size={ICON_SIZE_SM} />
+                    עריכה
+                  </button>
+                  <button
+                    type="button"
+                    className="btn small ghost"
+                    onClick={() => remove(p.id)}
+                  >
+                    <Icon icon={Trash2} size={ICON_SIZE_SM} />
+                    מחק
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <CollapsibleAdd
+        title={editId != null ? 'עריכת תוכנית הוראה' : 'תוכנית הוראה חדשה'}
+        buttonLabel="תוכנית חדשה"
+        buttonClass="chinuch"
+        open={formOpen || editId != null}
+        onOpenChange={(open) => {
+          setFormOpen(open)
+          if (!open) {
+            setEditId(null)
+            setForm({
+              title: '',
+              topic: '',
+              date: todayISO(),
+              notes: '',
+              materialIds: [],
+              studentIds: [],
+            })
+          }
+        }}
+      >
         <form className="form" onSubmit={save}>
           <div className="form-row">
             <div className="field">
@@ -161,60 +236,7 @@ export function TeachingPlansPage() {
             {editId != null ? 'שמירת שינויים' : 'יצירה'}
           </button>
         </form>
-      </section>
-
-      <section className="panel">
-        <h2>תוכניות</h2>
-        {!plans?.length ? (
-          <div className="empty">אין תוכניות הוראה.</div>
-        ) : (
-          <div className="list">
-            {plans.map((p) => (
-              <div key={p.id} className="list-item">
-                <div className="stack-sm">
-                  <strong>{p.title}</strong>
-                  <div className="meta">
-                    {p.topic}
-                    {p.date ? ` · ${formatDate(p.date)}` : ''}
-                    {` · ${p.status === 'planned' ? 'מתוכננת' : 'בוצעה'}`}
-                  </div>
-                  <div className="meta">
-                    חומרים: {p.materialIds.length} · תלמידים: {p.studentIds.length}
-                  </div>
-                </div>
-                <div className="actions">
-                  {p.status === 'planned' && (
-                    <button
-                      type="button"
-                      className="btn small chinuch"
-                      onClick={() => markDone(p.id)}
-                    >
-                      <Icon icon={Check} size={ICON_SIZE_SM} />
-                      בוצע
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="btn small secondary"
-                    onClick={() => p.id != null && startEdit(p.id)}
-                  >
-                    <Icon icon={Pencil} size={ICON_SIZE_SM} />
-                    עריכה
-                  </button>
-                  <button
-                    type="button"
-                    className="btn small ghost"
-                    onClick={() => remove(p.id)}
-                  >
-                    <Icon icon={Trash2} size={ICON_SIZE_SM} />
-                    מחק
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      </CollapsibleAdd>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { db } from '../db'
-import type { Reminder } from '../types'
-import { nowISO, todayISO } from './dates'
+import type { RepeatKind } from '../types'
+import { addDaysLocal, addMonthsLocal, nowISO, todayISO } from './dates'
 
 export async function completeReminder(id: number): Promise<void> {
   const rem = await db.reminders.get(id)
@@ -18,10 +18,33 @@ export async function completeReminder(id: number): Promise<void> {
       createdAt: completedAt,
     })
   }
+
+  if (rem.repeat && rem.repeat !== 'none') {
+    const base = rem.dueDate || todayISO()
+    const nextDate =
+      rem.repeat === 'weekly' ? addDaysLocal(base, 7) : addMonthsLocal(base, 1)
+    await db.reminders.add({
+      title: rem.title,
+      description: rem.description,
+      contactId: rem.contactId,
+      dueDate: nextDate,
+      priority: rem.priority,
+      status: 'open',
+      module: rem.module,
+      repeat: rem.repeat,
+      createdAt: completedAt,
+    })
+  }
 }
 
 export async function reopenReminder(id: number): Promise<void> {
   await db.reminders.update(id, { status: 'open', completedAt: undefined })
+}
+
+export function repeatLabel(repeat?: RepeatKind): string {
+  if (repeat === 'weekly') return 'שבועי'
+  if (repeat === 'monthly') return 'חודשי'
+  return ''
 }
 
 export function sortOpenItems<T extends { priority: string; dueDate?: string; createdAt: string }>(
@@ -38,14 +61,14 @@ export function sortOpenItems<T extends { priority: string; dueDate?: string; cr
   })
 }
 
-export function reminderModuleLabel(module: Reminder['module']): string {
+export function reminderModuleLabel(module: 'shlichut' | 'chinuch' | 'bayit'): string {
   if (module === 'shlichut') return 'שליחות'
   if (module === 'chinuch') return 'חינוך'
   return 'בית'
 }
 
-export function reminderModulePath(module: Reminder['module']): string {
+export function reminderModulePath(module: 'shlichut' | 'chinuch' | 'bayit'): string {
   if (module === 'shlichut') return '/shlichut/reminders'
-  if (module === 'chinuch') return '/chinuch/students'
+  if (module === 'chinuch') return '/chinuch/tasks'
   return '/bayit/tasks'
 }

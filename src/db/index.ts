@@ -128,6 +128,8 @@ const DEFAULT_SETTINGS: Record<string, string> = {
     'אחר',
   ]),
   chabadIncomeCategories: JSON.stringify(['תרומות', 'מכירות', 'אחר']),
+  homeMonthlyBudget: '',
+  notifyDueToday: '0',
 }
 
 async function seedIfEmpty() {

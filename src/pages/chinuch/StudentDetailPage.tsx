@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Icon, ICON_SIZE_SM } from '../../components/icons'
 import { DateField } from '../../components/DateField'
-import { PhoneLink } from '../../components/PhoneLink'
+import { ContactActions } from '../../components/PhoneLink'
 import { SaveBar } from '../../components/SaveBar'
 import { db } from '../../db'
 import { useSaveFeedback } from '../../hooks/useSaveFeedback'
 import { formatDate, todayISO } from '../../utils/dates'
+import { averagePercent, formatAvg } from '../../utils/grades'
 
 export function StudentDetailPage() {
   const { id } = useParams()
@@ -44,6 +45,7 @@ export function StudentDetailPage() {
 
   const formSnapshot = useMemo(() => JSON.stringify(form), [form])
   const dirty = baseline !== '' && formSnapshot !== baseline
+  const avg = averagePercent(grades ?? [])
 
   useEffect(() => {
     if (!student) return
@@ -156,8 +158,8 @@ export function StudentDetailPage() {
                 onChange={(e) => setForm((s) => ({ ...s, phone: e.target.value }))}
               />
               {form.phone.trim() && (
-                <div className="meta">
-                  <PhoneLink phone={form.phone} />
+                <div style={{ marginTop: '0.4rem' }}>
+                  <ContactActions phone={form.phone} />
                 </div>
               )}
             </div>
@@ -180,8 +182,8 @@ export function StudentDetailPage() {
                 }
               />
               {form.parentPhone.trim() && (
-                <div className="meta">
-                  <PhoneLink phone={form.parentPhone} />
+                <div style={{ marginTop: '0.4rem' }}>
+                  <ContactActions phone={form.parentPhone} />
                 </div>
               )}
             </div>
@@ -220,7 +222,7 @@ export function StudentDetailPage() {
       />
 
       <section className="panel">
-        <h3>ציונים</h3>
+        <h3>ציונים · {formatAvg(avg)}</h3>
         <form className="form" onSubmit={addGrade} style={{ marginBottom: '1rem' }}>
           <div className="form-row">
             <div className="field">
